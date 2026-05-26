@@ -79,13 +79,22 @@ export function NoteRecordingDock({
         flex items-center justify-center
       `}
     >
-      {/* Idle state — Mic + Chevron, delays showing when closing */}
+      {/* Idle state — Mic + Chevron, delays showing when closing.
+          Both state containers stay mounted so the dock can crossfade between
+          idle and recording. `opacity-0 + pointer-events-none` hides the
+          inactive container visually and blocks clicks, but leaves its buttons
+          in the AX tree (Chromium / macOS still expose them, which was
+          surfacing a stale "Stop recording" post-stop). `inert` removes the
+          subtree from the AX tree and the focus order while preserving the
+          fade, so only the active state is interactive and announced. */}
       <div
         className={`
           absolute inset-0 flex items-center justify-center gap-1 p-[5px]
           transition-opacity
           ${isRecording ? "opacity-0 duration-75 delay-0 pointer-events-none" : "opacity-100 duration-100 delay-100"}
         `}
+        inert={isRecording}
+        aria-hidden={isRecording}
       >
         <Tooltip>
           <TooltipTrigger asChild>
@@ -128,13 +137,17 @@ export function NoteRecordingDock({
         )}
       </div>
 
-      {/* Recording controls — visible when recording, hides fast when closing */}
+      {/* Recording controls — visible when recording, hides fast when closing.
+          See sibling comment above for why `inert` is required alongside the
+          opacity transition. */}
       <div
         className={`
           flex h-full w-full items-center justify-center gap-3 pl-7 pr-5
           transition-opacity
           ${isRecording ? "opacity-100 duration-100 delay-75" : "opacity-0 duration-50 delay-0 pointer-events-none"}
         `}
+        inert={!isRecording}
+        aria-hidden={!isRecording}
       >
         <div className="flex items-center gap-1 h-full">
           {Array.from({ length: NUM_WAVEFORM_BARS }).map((_, index) => (
