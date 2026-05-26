@@ -35,9 +35,21 @@ export function NoteRecordingDock({
   // "stopping" is excluded so the dock collapses back to its idle pill the
   // moment Stop is clicked — finalisation work continues in the background and
   // is surfaced via a "Transcribing…" indicator inside the transcription panel.
+  // "error" is included so a failed session (native helper crash, transcription
+  // chain throw) keeps the stop affordance visible. Without it the dock would
+  // render the idle mic button while the backend still holds a non-idle
+  // session, and clicking start would be rejected with "already active".
   const isRecording =
-    meetingState === "recording" || meetingState === "starting";
+    meetingState === "recording" ||
+    meetingState === "starting" ||
+    meetingState === "error";
   const isBusy = meetingState === "starting" || meetingState === "stopping";
+  // Sparkle visibility tracks "is the user free to invoke a skill on this
+  // note", which is true for both `idle` and `error` — the error pill is a
+  // recovery prompt, not a capture in progress. Using `isRecording` here
+  // would wrongly hide sparkle during error.
+  const isActivelyCapturing =
+    meetingState === "recording" || meetingState === "starting";
 
   const handleMicClick = () => {
     if (!isBusy) {
@@ -151,7 +163,7 @@ export function NoteRecordingDock({
         </Tooltip>
       </div>
     </div>
-    {noteId !== undefined && !isRecording && (
+    {noteId !== undefined && !isActivelyCapturing && (
       <SkillSparkleButton noteId={noteId} />
     )}
     </>

@@ -16,7 +16,10 @@ import {
   useRegisterCurrentNote,
   type CurrentNoteContextValue,
 } from "@/renderer/main/components/current-note-context";
-import { useMeetingSnapshot } from "@/renderer/main/components/meeting-snapshot-context";
+import {
+  useMeetingSnapshot,
+  useMeetingSnapshotHydrated,
+} from "@/renderer/main/components/meeting-snapshot-context";
 import type { NoteAssetKind } from "../types";
 import type { MeetingRuntimeState, TranscriptEvent } from "@/types/meeting";
 
@@ -189,6 +192,7 @@ export default function NotePage({
   );
 
   const meetingSnapshot = useMeetingSnapshot();
+  const meetingSnapshotHydrated = useMeetingSnapshotHydrated();
 
   // Derive per-note meeting state from the shared snapshot. The snapshot is
   // global; we coerce to "idle" when the active session belongs to a different
@@ -253,23 +257,67 @@ export default function NotePage({
     };
   }, [noteIdNumber]);
 
-  // Auto-start recording when editor is ready and autoRecord flag is set
+  // Auto-start recording when editor is ready and autoRecord flag is set.
+  // Gates on the global snapshot so we don't fire a mutation the backend will
+  // reject when a session is already active (on this or any other note).
   useEffect(() => {
-    if (editorReady && autoRecord && !autoRecordTriggeredRef.current) {
-      autoRecordTriggeredRef.current = true;
-      startMeetingMutation
-        .mutateAsync({ noteId: noteIdNumber, mode: "dual" })
-        .then(() => {
-          setActiveAsset("transcription");
-        })
-        .catch((error) => {
-          console.error("Failed to auto-start meeting capture:", error);
-        });
+    if (!editorReady || !autoRecord || autoRecordTriggeredRef.current) {
+      return;
     }
-  }, [autoRecord, editorReady, noteIdNumber, startMeetingMutation]);
+    if (!meetingSnapshotHydrated) {
+      // Default snapshot is EMPTY_SNAPSHOT (state: "idle") — auto-starting
+      // before either the query or the subscription has delivered would race
+      // an already-active backend session and surface a stray rejection.
+      return;
+    }
+    if (meetingSnapshot.state !== "idle") {
+      // Don't mark as triggered yet — wait for the foreign session to end so
+      // we can fulfil the auto-record intent on the next snapshot update.
+      return;
+    }
+    autoRecordTriggeredRef.current = true;
+    startMeetingMutation
+      .mutateAsync({ noteId: noteIdNumber, mode: "dual" })
+      .then(() => {
+        setActiveAsset("transcription");
+      })
+      .catch((error) => {
+        console.error("Failed to auto-start meeting capture:", error);
+      });
+  }, [
+    autoRecord,
+    editorReady,
+    meetingSnapshot.state,
+    meetingSnapshotHydrated,
+    noteIdNumber,
+    startMeetingMutation,
+  ]);
 
   const handleStartMeeting = useCallback(() => {
-    if (meetingState !== "idle") {
+    // UX gate only — the backend's check in MeetingManager.start() is the
+    // real correctness barrier. Per-note `meetingState` is coerced to "idle"
+    // when a session is active on a DIFFERENT note, so on its own it lets a
+    // foreign-note session through; also check the global snapshot so the
+    // toast we surface is helpful instead of the raw "already active".
+    // Pre-hydration clicks (HMR / cold reload while the mouse is already
+    // parked over the dock) silently no-op — better than firing a mutation
+    // into an unknown backend state. The user's retry click will land after
+    // the local IPC roundtrip completes.
+    if (
+      !meetingSnapshotHydrated ||
+      meetingState !== "idle" ||
+      meetingSnapshot.state !== "idle"
+    ) {
+      if (
+        meetingSnapshotHydrated &&
+        meetingSnapshot.state !== "idle" &&
+        meetingSnapshot.noteId !== null &&
+        meetingSnapshot.noteId !== noteIdNumber
+      ) {
+        toast.error(
+          "A recording is already in progress on another note. Stop it first.",
+        );
+      }
       return;
     }
 
@@ -281,7 +329,14 @@ export default function NotePage({
       .catch((error) => {
         toast.error(`Failed to start meeting transcription: ${error.message}`);
       });
-  }, [meetingState, noteIdNumber, startMeetingMutation]);
+  }, [
+    meetingSnapshot.noteId,
+    meetingSnapshot.state,
+    meetingSnapshotHydrated,
+    meetingState,
+    noteIdNumber,
+    startMeetingMutation,
+  ]);
 
   const handleStopMeeting = useCallback(() => {
     if (meetingState !== "recording" && meetingState !== "error") {
