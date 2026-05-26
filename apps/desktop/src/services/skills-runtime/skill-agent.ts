@@ -22,9 +22,16 @@ import { resolveTools } from "./resolve-tools";
 //
 // Plain `z.string()` — see skill-runner.ts comment about OpenAI strict
 // mode rejecting `minLength`. Non-empty is validated post-parse.
+//
+// `reasoning` is `.nullable()`, not `.optional()`. OpenAI strict
+// structured outputs (the default for @ai-sdk/openai) require every key
+// in `properties` to appear in `required` — `.optional()` omits the
+// field from `required` and the request 400s with "Missing 'reasoning'".
+// `.nullable()` keeps the key required while letting the model return
+// `null` when it has nothing to add. (PRSM-78)
 export const OUTPUT_SCHEMA = z.object({
   markdown: z.string(),
-  reasoning: z.string().optional(),
+  reasoning: z.string().nullable(),
 });
 
 export type SkillAgentOutput = z.infer<typeof OUTPUT_SCHEMA>;
