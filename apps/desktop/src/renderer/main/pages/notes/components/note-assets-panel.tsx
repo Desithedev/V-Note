@@ -3,6 +3,7 @@ import {
   ChevronDown,
   ClipboardCopy,
   FileText,
+  Loader2,
   Maximize2,
   Minimize2,
   MoreVertical,
@@ -334,16 +335,14 @@ export function NoteAssetsPanel({
                 <div ref={scrollEndRef} aria-hidden />
               </div>
             </ScrollArea>
-            {meetingState === "stopping" && (
-              <div className="flex shrink-0 items-center justify-center gap-2.5 px-4 py-3">
-                <div className="flex gap-1" aria-hidden>
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-white/60 [animation-delay:-0.3s]" />
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-white/60 [animation-delay:-0.15s]" />
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-white/60" />
-                </div>
-                <span className="ai-generating-text shimmer-text-light text-sm font-medium">
-                  Transcribing the last bits…
-                </span>
+            {isProcessing && (
+              <div className="flex shrink-0 items-center justify-center gap-2 px-4 py-3 text-white/70">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {meetingState !== "stopping" && (
+                  <span className="text-sm font-medium">
+                    Listening and Transcribing...
+                  </span>
+                )}
               </div>
             )}
           </div>

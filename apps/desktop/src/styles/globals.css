@@ -290,7 +290,7 @@ html.vibrancy [data-slot="sidebar-inner"] {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: shimmer-text-pill-sweep 1.8s ease-in-out infinite;
+  animation: shimmer-text-pill-sweep 3s linear infinite;
 }
 
 @keyframes shimmer-text-pill-sweep {
