@@ -1,97 +1,114 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Loader2 } from "lucide-react";
-import { Waveform } from "@/components/Waveform";
-import { StopButton, NotesIconButton } from "./widget-buttons";
-import { PILL_SHELL_CLASS } from "./idle-pill";
+import { IconNotes } from "@tabler/icons-react";
+import type { MeetingWidgetEdge } from "@/types/meeting-widget";
 import type { MeetingRuntimeState } from "@/types/meeting";
-
-const NUM_WAVEFORM_BARS_HOVERED = 6;
-const NUM_WAVEFORM_BARS_COLLAPSED = 4;
+import { IconButton } from "./icon-button";
+import { WaveformStopAnchor } from "./waveform-stop-anchor";
+import { DragHandle } from "./drag-handle";
 
 export interface RecordingPillProps {
-  hovered: boolean;
+  edge: MeetingWidgetEdge;
   meetingState: MeetingRuntimeState;
-  // Real-time amplitude (0-1) — combined mic + system, owned by the parent.
   level: number;
   onStop: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenNote: () => void;
+  showHandle: boolean;
+  onDragStart: (event: React.PointerEvent<HTMLButtonElement>) => void;
 }
 
+// Recording state always lives in its expanded form — same 36×36 frame
+// as the idle pill, with Open Note + drag handle around it. The frame
+// position never changes; only the anchor's internal waveform↔stop swap
+// reacts to hover.
+const FRAME = 36;
+const GAP = 6;
+const OPEN_NOTE = 36;
+const HANDLE_SHORT = 18;
+
 export function RecordingPill({
-  hovered,
+  edge,
   meetingState,
   level,
   onStop,
   onOpenNote,
+  showHandle,
+  onDragStart,
 }: RecordingPillProps) {
-  const isError = meetingState === "error";
-  const isStarting = meetingState === "starting";
-  const isStopping = meetingState === "stopping";
-  const isBusy = isStarting || isStopping;
+  const isVertical = edge === "right";
+  const tooltipSide = isVertical ? "left" : "top";
+
+  const openNoteStyle: React.CSSProperties = isVertical
+    ? { right: 0, top: -(OPEN_NOTE + GAP) }
+    : { right: -(OPEN_NOTE + GAP), top: 0 };
+  // Drag handle on the opposite side from Open Note.
+  const handleStyle: React.CSSProperties = isVertical
+    ? {
+        bottom: -(HANDLE_SHORT + GAP),
+        left: "50%",
+        transform: "translateX(-50%)",
+      }
+    : {
+        left: -(HANDLE_SHORT + GAP),
+        top: "50%",
+        transform: "translateY(-50%)",
+      };
+  // Hit-zone underlay covering the full expanded bounding box so the
+  // cursor doesn't lose hover crossing the gaps between buttons.
+  const hitUnderlayStyle: React.CSSProperties = isVertical
+    ? {
+        top: -(OPEN_NOTE + GAP),
+        left: 0,
+        width: FRAME,
+        height: OPEN_NOTE + GAP + FRAME + GAP + HANDLE_SHORT,
+      }
+    : {
+        top: 0,
+        left: -(HANDLE_SHORT + GAP),
+        width: HANDLE_SHORT + GAP + FRAME + GAP + OPEN_NOTE,
+        height: FRAME,
+      };
 
   return (
-    <motion.div
-      key="recording"
+    <div
+      className="relative"
+      style={{ width: FRAME, height: FRAME }}
       data-hit-zone="true"
-      initial={false}
-      animate={hovered ? { height: 48, width: 137 } : { height: 44, width: 44 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className={`${PILL_SHELL_CLASS} flex items-center justify-center overflow-hidden rounded-full before:rounded-full ${hovered ? "gap-[10px]" : ""}`}
     >
-      <AnimatePresence>
-        {hovered && (
-          <motion.div
-            key="stop"
-            initial={{ opacity: 0, x: 8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 8 }}
-            transition={{ duration: 0.14 }}
-          >
-            {isBusy ? (
-              <span className="flex size-8 items-center justify-center text-white/80">
-                <Loader2 className="size-5 animate-spin" />
-              </span>
-            ) : isError ? (
-              <span className="flex size-8 items-center justify-center text-red-400">
-                <AlertTriangle className="size-[18px]" />
-              </span>
-            ) : (
-              <StopButton onClick={onStop} disabled={isBusy} />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      {/* Hit-zone underlay — always active during recording. */}
       <div
-        className={`flex flex-none items-center justify-center gap-[2.5px] ${hovered ? "h-[18px]" : "h-4"}`}
-      >
-        {Array.from({
-          length: hovered ? NUM_WAVEFORM_BARS_HOVERED : NUM_WAVEFORM_BARS_COLLAPSED,
-        }).map((_, index) => (
-          <Waveform
-            key={index}
-            index={index}
-            isRecording={meetingState === "recording"}
-            level={level}
-            baseHeight={hovered ? 90 : 80}
-            silentHeight={hovered ? 30 : 25}
-          />
-        ))}
+        className="absolute"
+        style={hitUnderlayStyle}
+        data-hit-zone="true"
+      />
+      {/* Waveform / Stop anchor — always present, owns its own
+          internal hover state for the waveform→Stop swap. */}
+      <div className="absolute inset-0">
+        <WaveformStopAnchor
+          meetingState={meetingState}
+          level={level}
+          onStop={onStop}
+          tooltipSide={tooltipSide}
+        />
       </div>
 
-      <AnimatePresence>
-        {hovered && (
-          <motion.div
-            key="open-note"
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -8 }}
-            transition={{ duration: 0.14 }}
-          >
-            <NotesIconButton onClick={onOpenNote} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+      {/* Open Note — always rendered while recording. */}
+      <div className="absolute" style={openNoteStyle}>
+        <IconButton
+          tooltip="Open Note"
+          icon={<IconNotes size={16} stroke={2} />}
+          onClick={onOpenNote}
+          tooltipSide={tooltipSide}
+        />
+      </div>
+
+      {/* Drag handle — always visible while recording. */}
+      <div className="absolute" style={handleStyle}>
+        <DragHandle
+          edge={edge}
+          visible={showHandle}
+          onPointerDown={onDragStart}
+          tooltipSide={tooltipSide}
+        />
+      </div>
+    </div>
   );
 }

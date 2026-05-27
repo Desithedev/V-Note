@@ -4,6 +4,7 @@ import { logger } from "../logger";
 import { getAppIconPath } from "./icon";
 import type { SettingsService } from "../../services/settings-service";
 import type { createIPCHandler } from "electron-trpc-experimental/main";
+import type { MeetingWidgetEdge } from "../../types/meeting-widget";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -13,36 +14,23 @@ declare const RECORDING_WIDGET_WINDOW_VITE_NAME: string;
 export class WindowManager {
   private static readonly MEETING_WIDGET_WINDOW_WIDTH = 380 as const;
   private static readonly MEETING_WIDGET_WINDOW_HEIGHT = 240 as const;
-  private static readonly MEETING_WIDGET_EDGE_MARGIN = 12 as const;
-  private static readonly MEETING_WIDGET_VERTICAL_MARGIN = 24 as const;
+  private static readonly MEETING_WIDGET_EDGE_MARGIN = 6 as const;
+  private static readonly MEETING_WIDGET_PARALLEL_MARGIN = 24 as const;
   private mainWindow: BrowserWindow | null = null;
   private onboardingWindow: BrowserWindow | null = null;
   private meetingWidgetWindow: BrowserWindow | null = null;
   private themeListenerSetup: boolean = false;
 
-  /**
-   * Get the correct traffic light position based on macOS version.
-   * macOS Tahoe (26+) has larger, redesigned traffic light buttons as part of
-   * the "Liquid Glass" design language that require a different y-offset.
-   * Electron does not handle this automatically - apps must detect OS version.
-   * See: https://github.com/microsoft/vscode/pull/280593
-   */
   private getTrafficLightPosition(): { x: number; y: number } {
     if (process.platform !== "darwin") {
       return { x: 20, y: 16 }; // Not used on non-macOS, but return default
     }
-
-    // process.getSystemVersion() returns marketing version (e.g., "26.0.0")
-    // vs os.release() which returns Darwin kernel version (e.g., "25.1.0")
-    const systemVersion = process.getSystemVersion();
-    const majorVersion = parseInt(systemVersion.split(".")[0], 10);
-    const isTahoeOrLater = majorVersion >= 26;
-
     return { x: 16, y: 16 };
   }
 
   private getMeetingWidgetWindowBounds(
-    normalizedY: number = 0.5,
+    edge: MeetingWidgetEdge = "right",
+    normalizedPosition: number = 0.5,
     displayPoint: Electron.Point = screen.getCursorScreenPoint(),
   ): Electron.Rectangle {
     const display = screen.getDisplayNearestPoint(displayPoint);
@@ -56,18 +44,29 @@ export class WindowManager {
       workArea.height,
     );
     const edgeMargin = WindowManager.MEETING_WIDGET_EDGE_MARGIN;
-    const verticalMargin = WindowManager.MEETING_WIDGET_VERTICAL_MARGIN;
-    const minY = workArea.y + verticalMargin;
-    const maxY = workArea.y + workArea.height - height - verticalMargin;
-    const clampedNormalizedY = clampNormalizedY(normalizedY);
-    const y =
-      maxY <= minY
-        ? minY
-        : Math.round(minY + (maxY - minY) * clampedNormalizedY);
+    const parallelMargin = WindowManager.MEETING_WIDGET_PARALLEL_MARGIN;
+    const clamped = clampNormalizedPosition(normalizedPosition);
 
+    if (edge === "right") {
+      const minY = workArea.y + parallelMargin;
+      const maxY = workArea.y + workArea.height - height - parallelMargin;
+      const y =
+        maxY <= minY ? minY : Math.round(minY + (maxY - minY) * clamped);
+      return {
+        x: workArea.x + workArea.width - width - edgeMargin,
+        y,
+        width,
+        height,
+      };
+    }
+
+    // edge === "bottom"
+    const minX = workArea.x + parallelMargin;
+    const maxX = workArea.x + workArea.width - width - parallelMargin;
+    const x = maxX <= minX ? minX : Math.round(minX + (maxX - minX) * clamped);
     return {
-      x: workArea.x + workArea.width - width - edgeMargin,
-      y,
+      x,
+      y: workArea.y + workArea.height - height - edgeMargin,
       width,
       height,
     };
@@ -336,9 +335,10 @@ export class WindowManager {
   }
 
   async createOrShowMeetingWidgetWindow(
-    normalizedY: number = 0.5,
+    edge: MeetingWidgetEdge = "right",
+    normalizedPosition: number = 0.5,
   ): Promise<void> {
-    const bounds = this.getMeetingWidgetWindowBounds(normalizedY);
+    const bounds = this.getMeetingWidgetWindowBounds(edge, normalizedPosition);
 
     if (this.meetingWidgetWindow && !this.meetingWidgetWindow.isDestroyed()) {
       this.meetingWidgetWindow.setBounds(bounds);
@@ -367,6 +367,7 @@ export class WindowManager {
         preload: path.join(__dirname, "preload.js"),
         nodeIntegration: false,
         contextIsolation: true,
+        backgroundThrottling: false,
       },
     });
 
@@ -432,43 +433,104 @@ export class WindowManager {
     );
   }
 
-  updateMeetingWidgetWindowPosition(
+  /**
+   * Move the widget window to follow the cursor freely during a drag.
+   * No edge constraint — the window is wherever the cursor is. Returns the
+   * top-left bounds we set, useful for tests.
+   */
+  updateMeetingWidgetWindowPositionFree(
+    screenX: number,
     screenY: number,
+    pointerOffsetX: number,
     pointerOffsetY: number,
-  ): number | null {
+  ): Electron.Rectangle | null {
     if (!this.meetingWidgetWindow || this.meetingWidgetWindow.isDestroyed()) {
       return null;
     }
 
     const currentBounds = this.meetingWidgetWindow.getBounds();
-    const display = screen.getDisplayNearestPoint({
-      x: currentBounds.x + currentBounds.width - 1,
-      y: screenY,
-    });
+    const targetX = Math.round(screenX - pointerOffsetX);
+    const targetY = Math.round(screenY - pointerOffsetY);
+    const display = screen.getDisplayNearestPoint({ x: screenX, y: screenY });
     const workArea = display.workArea;
-    const edgeMargin = WindowManager.MEETING_WIDGET_EDGE_MARGIN;
-    const verticalMargin = WindowManager.MEETING_WIDGET_VERTICAL_MARGIN;
-    const minY = workArea.y + verticalMargin;
-    const maxY =
-      workArea.y + workArea.height - currentBounds.height - verticalMargin;
-    const y = clamp(
-      Math.round(screenY - pointerOffsetY),
-      minY,
-      Math.max(minY, maxY),
+    const x = clamp(
+      targetX,
+      workArea.x,
+      workArea.x + workArea.width - currentBounds.width,
     );
-    const x = workArea.x + workArea.width - currentBounds.width - edgeMargin;
+    const y = clamp(
+      targetY,
+      workArea.y,
+      workArea.y + workArea.height - currentBounds.height,
+    );
 
-    this.meetingWidgetWindow.setBounds({
-      ...currentBounds,
-      x,
-      y,
-    });
+    const next = { ...currentBounds, x, y };
+    this.meetingWidgetWindow.setBounds(next);
+    return next;
+  }
 
-    if (maxY <= minY) {
-      return 1;
+  /**
+   * Snap the widget to the nearest edge of the display currently under the
+   * cursor. Returns the resolved { edge, normalizedPosition } so the manager
+   * can persist them.
+   */
+  snapMeetingWidgetToEdge(
+    _screenX: number,
+    _screenY: number,
+  ): { edge: MeetingWidgetEdge; normalizedPosition: number } | null {
+    if (!this.meetingWidgetWindow || this.meetingWidgetWindow.isDestroyed()) {
+      return null;
     }
 
-    return clampNormalizedY((y - minY) / (maxY - minY));
+    const bounds = this.meetingWidgetWindow.getBounds();
+    // Use the window's center to choose nearest edge and derive
+    // normalizedPosition from the window's current bounds — this preserves
+    // the pointer-offset grip that the user established at drag-start, so
+    // the widget snaps to where it visually ended, not where the cursor
+    // released.
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    const display = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+    const workArea = display.workArea;
+    const distanceToRight = Math.max(
+      0,
+      workArea.x + workArea.width - centerX,
+    );
+    const distanceToBottom = Math.max(
+      0,
+      workArea.y + workArea.height - centerY,
+    );
+    const edge: MeetingWidgetEdge =
+      distanceToBottom < distanceToRight ? "bottom" : "right";
+
+    const parallelMargin = WindowManager.MEETING_WIDGET_PARALLEL_MARGIN;
+    let normalizedPosition: number;
+
+    if (edge === "right") {
+      const minY = workArea.y + parallelMargin;
+      const maxY =
+        workArea.y + workArea.height - bounds.height - parallelMargin;
+      normalizedPosition =
+        maxY <= minY
+          ? 0.5
+          : clampNormalizedPosition((bounds.y - minY) / (maxY - minY));
+    } else {
+      const minX = workArea.x + parallelMargin;
+      const maxX =
+        workArea.x + workArea.width - bounds.width - parallelMargin;
+      normalizedPosition =
+        maxX <= minX
+          ? 0.5
+          : clampNormalizedPosition((bounds.x - minX) / (maxX - minX));
+    }
+
+    const target = this.getMeetingWidgetWindowBounds(
+      edge,
+      normalizedPosition,
+      { x: centerX, y: centerY },
+    );
+    this.meetingWidgetWindow.setBounds(target);
+    return { edge, normalizedPosition };
   }
 
   async navigateMainWindow(route: string): Promise<void> {
@@ -570,9 +632,9 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function clampNormalizedY(value: number): number {
+function clampNormalizedPosition(value: number): number {
   if (!Number.isFinite(value)) {
-    return 1;
+    return 0.5;
   }
 
   return Math.min(1, Math.max(0, value));
