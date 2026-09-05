@@ -23,4 +23,15 @@ allprojects {
         mavenCentral()
         maven { url 'https://jitpack.io' }
     }
+
+    configurations.all {
+        resolutionStrategy {
+            force "com.facebook.react:react-android:0.76.6"
+            eachDependency { DependencyResolveDetails details ->
+                if (details.requested.group == 'com.facebook.react' && details.requested.name == 'react-native') {
+                    details.useTarget("com.facebook.react:react-android:0.76.6")
+                }
+            }
+        }
+    }
 }

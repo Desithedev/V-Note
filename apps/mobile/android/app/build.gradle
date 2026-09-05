@@ -70,12 +70,12 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
 
-    // Sherpa-ONNX Core C++ Engine cho Android (Dong co cua PhoVoice)
-    implementation("com.github.k2-fsa.sherpa.onnx:sherpa-onnx:1.10.42")
+    // Sherpa-ONNX Core C++ Engine cho Android (Dong co cua PhoVoice tai tu GitHub Release)
+    implementation fileTree(dir: "libs", include: ["*.aar", "*.jar"])
 
-    // React Native
-    implementation("com.facebook.react:react-android")
-    implementation("com.facebook.react:hermes-android")
+    // React Native (phien ban dong bo voi package.json: 0.76.6)
+    implementation("com.facebook.react:react-android:0.76.6")
+    implementation("com.facebook.react:hermes-android:0.76.6")
 
     if (findProject(':react-native-async-storage_async-storage') != null) {
         implementation project(':react-native-async-storage_async-storage')

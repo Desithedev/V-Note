@@ -1,13 +1,16 @@
-"""Script copy/tải mô hình PhoVoice Zipformer 30M Streaming vào Android Assets.
+"""Script copy/tải mô hình PhoVoice Zipformer 30M Streaming và native AAR vào Android Assets & Libs.
 """
 import os
 import urllib.request
 import sys
+import shutil
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TARGET_DIR = os.path.join(BASE_DIR, "android", "app", "src", "main", "assets", "phovoice")
+LIBS_DIR = os.path.join(BASE_DIR, "android", "app", "libs")
 
 os.makedirs(TARGET_DIR, exist_ok=True)
+os.makedirs(LIBS_DIR, exist_ok=True)
 
 MODELS = [
     ("https://huggingface.co/hynt/Zipformer-30M-RNNT-Streaming-6000h/resolve/main/encoder-epoch-31-avg-11-chunk-64-left-128.fp16.onnx", "encoder-epoch-31-avg-11-chunk-64-left-128.fp16.onnx"),
@@ -19,7 +22,7 @@ MODELS = [
 def main():
     print(f"[PhoVoice Mobile] Dang chuan bi model tai: {TARGET_DIR}")
     
-    # Kiem tra xem da co trong packages/phovoice-engine/models chua
+    # 1. Chuan bi mo hinh PhoVoice ONNX
     root_dir = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
     engine_models = os.path.join(root_dir, "packages", "phovoice-engine", "models", "zipformer-30m-rnnt-streaming-6000h")
     
@@ -32,7 +35,6 @@ def main():
         src_path = os.path.join(engine_models, filename)
         if os.path.exists(src_path) and os.path.getsize(src_path) > 100:
             print(f"  -> Copy {filename} tu phovoice-engine...")
-            import shutil
             shutil.copy2(src_path, target_path)
             continue
 
@@ -57,7 +59,21 @@ def main():
             else:
                 print(f"  [ERROR] Khong the tai {filename}: {e}")
 
-    print("[PhoVoice Mobile] Chuan bi model hoan tat!")
+    # 2. Chuan bi Sherpa-ONNX Android AAR
+    aar_filename = "sherpa-onnx-1.10.42.aar"
+    aar_path = os.path.join(LIBS_DIR, aar_filename)
+    if os.path.exists(aar_path) and os.path.getsize(aar_path) > 10000000:
+        print(f"  [OK] {aar_filename} ({os.path.getsize(aar_path)} bytes) da co san trong libs.")
+    else:
+        aar_url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.10.42/sherpa-onnx-1.10.42.aar"
+        print(f"  -> Dang tai native library {aar_filename} tu {aar_url}...")
+        try:
+            urllib.request.urlretrieve(aar_url, aar_path)
+            print(f"  [OK] Da tai xong {aar_filename} ({os.path.getsize(aar_path)} bytes)")
+        except Exception as e:
+            print(f"  [ERROR] Khong the tai {aar_filename}: {e}")
+
+    print("[PhoVoice Mobile] Chuan bi model va native library hoan tat!")
 
 if __name__ == "__main__":
     main()

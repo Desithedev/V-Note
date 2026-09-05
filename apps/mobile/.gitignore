@@ -17,3 +17,6 @@ android/app/src/main/assets/phovoice/*.bin
 android/app/src/main/assets/phovoice/*.model
 android/app/src/main/assets/*.bundle
 android/app/src/main/assets/*.bundle.meta
+android/app/libs/*.aar
+android/app/libs/*.jar
+

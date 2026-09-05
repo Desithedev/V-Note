@@ -67,7 +67,7 @@ jobs:
       - name: Bundle React Native JS offline
         run: pnpm --filter @v-note/mobile bundle:android
 
-      - name: Prepare PhoVoice Model into Android Assets
+      - name: Prepare PhoVoice Model and Native AAR into Android Assets and Libs
         run: |
           python3 apps/mobile/scripts/prepare-models.py
 
