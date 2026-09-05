@@ -4,5 +4,5 @@
 // drifting — pass these into `createOpenRouter`, future `@ai-sdk/google`
 // app-id headers, Anthropic User-Agent suffixes, etc.
 
-export const APP_NAME = "Prismical";
-export const APP_URL = "https://prismical.ai";
+export const APP_NAME = "V-Note";
+export const APP_URL = "https://v-note.ai";

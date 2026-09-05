@@ -171,6 +171,7 @@
  * class only styles the visible chrome (the grip icon container).
  * -------------------------------------------------------------------- */
 
+.vnote-drag-handle,
 .prismical-drag-handle {
   display: inline-flex;
   align-items: center;
@@ -181,9 +182,21 @@
   color: var(--muted-foreground);
   border-radius: 4px;
 }
+.vnote-drag-handle:hover,
 .prismical-drag-handle:hover {
   background: var(--muted);
 }
+.vnote-drag-handle:active,
 .prismical-drag-handle:active {
   cursor: grabbing;
+}
+
+/* Disable red wavy spellcheck underlines across note editor */
+.tiptap,
+.ProseMirror,
+.ProseMirror *,
+[contenteditable],
+[contenteditable="true"] {
+  spellcheck: false !important;
+  -webkit-spellcheck: false !important;
 }

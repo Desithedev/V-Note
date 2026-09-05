@@ -190,7 +190,7 @@ class FakeBrowserWindow extends EventEmitter {
 // destroys the directory file B's tests are still using).
 const testUserDataPath = path.join(
   os.tmpdir(),
-  `prismical-test-${Date.now()}-${process.pid}-${process.hrtime.bigint()}`,
+  `v-note-test-${Date.now()}-${process.pid}-${process.hrtime.bigint()}`,
 );
 const testAppPath = process.cwd();
 
@@ -213,7 +213,7 @@ const mockApp = {
     };
     return paths[name] || testUserDataPath;
   }),
-  getName: vi.fn(() => "Prismical"),
+  getName: vi.fn(() => "V-Note"),
   getVersion: vi.fn(() => "0.1.0-test"),
   isPackaged: false,
   isReady: vi.fn(() => true),

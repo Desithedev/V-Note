@@ -23,17 +23,17 @@ interface AlignmentMatch {
 
 const DEFAULT_OPTIONS: Required<ReferenceEchoCancellerOptions> = {
   sampleRate: 48_000,
-  maxDelayMs: 250,
-  historyMs: 400,
+  maxDelayMs: 350,
+  historyMs: 600,
   coarseSearchStep: 96,
   fineSearchStep: 8,
-  analysisStride: 6,
-  minCorrelation: 0.32,
-  minReferenceRms: 0.008,
-  minScale: 0.06,
-  maxScale: 1.35,
-  residualSuppressionCorrelation: 0.82,
-  residualSuppressionGain: 0.82,
+  analysisStride: 4,
+  minCorrelation: 0.22,
+  minReferenceRms: 0.003,
+  minScale: 0.02,
+  maxScale: 2.5,
+  residualSuppressionCorrelation: 0.45,
+  residualSuppressionGain: 0.05,
 };
 
 class Float32HistoryBuffer {
@@ -137,7 +137,10 @@ export class ReferenceEchoCanceller {
         samples[index] - searchWindow[match.startIndex + index] * match.scale;
     }
 
-    if (match.correlation >= this.options.residualSuppressionCorrelation) {
+    if (match.correlation >= 0.65) {
+      // High correlation with system audio: the mic frame is almost entirely speaker sound, silence it
+      cleaned.fill(0);
+    } else if (match.correlation >= this.options.residualSuppressionCorrelation) {
       for (let index = 0; index < cleaned.length; index += 1) {
         cleaned[index] *= this.options.residualSuppressionGain;
       }

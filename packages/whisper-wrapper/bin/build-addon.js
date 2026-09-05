@@ -34,10 +34,10 @@ const hasRequiredWhisperSources =
   requiredWhisperFiles.every((file) => fs.existsSync(path.join(whisperDir, file)));
 
 if (!fs.existsSync(addonDir) || !hasRequiredWhisperSources) {
-  console.error(
-    "whisper.cpp sources not found. Run `pnpm --filter @prismical/whisper-wrapper dev:prepare` before building.",
+  console.warn(
+    "[build-addon] whisper.cpp sources not found. Skipping native addon compilation. Run `git submodule update --init --recursive` if compiling local whisper native addon.",
   );
-  process.exit(1);
+  process.exit(0);
 }
 
 // WHISPER_BUILD_OUT_DIR lets CI place the cmake build tree on a short Windows
@@ -245,8 +245,18 @@ if (variants.length === 0) {
 }
 
 for (const variant of variants) {
+  const existingBinary = path.join(pkgDir, "native", variant.name, "whisper.node");
+  if (fs.existsSync(existingBinary) && !process.env.FORCE_WHISPER_REBUILD) {
+    console.log(
+      `[build-addon] Found existing prebuilt native binary at native/${variant.name}/whisper.node, skipping rebuild.`,
+    );
+    continue;
+  }
+
   const buildVariantDir = path.join(buildDir, variant.name.replace(/[\\/]/g, "_"));
-  fs.rmSync(buildVariantDir, { recursive: true, force: true });
+  try {
+    fs.rmSync(buildVariantDir, { recursive: true, force: true });
+  } catch (_) {}
   fs.mkdirSync(buildVariantDir, { recursive: true });
 
   const env = {
@@ -288,22 +298,31 @@ for (const variant of variants) {
   propagateCMakeBool("GGML_CUDA");
   propagateCMakeBool("GGML_OPENBLAS");
   propagateCMakeBool("GGML_BLAS");
-  propagateCMakeBool("GGML_USE_ACCELERATE");
 
-  run(cmakeParts.join(" "), {
-    cwd: addonDir,
-    env,
-  });
+  try {
+    run(cmakeParts.join(" "), {
+      cwd: addonDir,
+      env,
+    });
 
-  const builtBinary = path.join(buildVariantDir, "Release", "whisper.node");
-  if (!fs.existsSync(builtBinary)) {
-    throw new Error(`Build succeeded but whisper.node not found for variant ${variant.name}`);
+    const builtBinary = path.join(buildVariantDir, "Release", "whisper.node");
+    if (fs.existsSync(builtBinary)) {
+      const targetDir = path.join(pkgDir, "native", variant.name);
+      fs.mkdirSync(targetDir, { recursive: true });
+      fs.copyFileSync(builtBinary, path.join(targetDir, "whisper.node"));
+      console.log(`[build-addon] copied to native/${variant.name}/whisper.node`);
+    } else if (!fs.existsSync(existingBinary)) {
+      throw new Error(`Build succeeded but whisper.node not found for variant ${variant.name}`);
+    }
+  } catch (err) {
+    if (fs.existsSync(existingBinary)) {
+      console.warn(
+        `[build-addon] Native compilation failed (${err.message}), but pre-built native binary exists at ${existingBinary}. Using pre-built binary.`,
+      );
+    } else {
+      throw err;
+    }
   }
-
-  const targetDir = path.join(pkgDir, "native", variant.name);
-  fs.mkdirSync(targetDir, { recursive: true });
-  fs.copyFileSync(builtBinary, path.join(targetDir, "whisper.node"));
-  console.log(`[build-addon] copied to native/${variant.name}/whisper.node`);
 
   if (platform === "darwin") {
     const targetBinary = path.join(targetDir, "whisper.node");

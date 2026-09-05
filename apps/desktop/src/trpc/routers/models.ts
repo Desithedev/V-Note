@@ -6,6 +6,7 @@ import type {
   DownloadProgress,
 } from "../../constants/models";
 import type { LocalWhisperDownloadedModel } from "../../db/schema";
+import { phovoiceLocalService } from "../../main/services/phovoice-local-service";
 
 // What's left of the old models router after the multi-instance refactor:
 // it's now scoped to the local-whisper download manager (download / cancel /
@@ -241,6 +242,45 @@ export const modelsRouter = createRouter({
       };
       modelService.on("selection-changed", handler);
       return () => modelService.off("selection-changed", handler);
+    });
+  }),
+
+  // ---------- PhoVoice Local Engine Procedures ----------
+
+  isPhoVoiceModelDownloaded: procedure.query(async ({ ctx }) => {
+    const modelService = ctx.serviceManager.getService("modelService");
+    return modelService ? modelService.isPhoVoiceModelDownloaded() : false;
+  }),
+
+  downloadPhoVoiceModel: procedure.mutation(async ({ ctx }) => {
+    const modelService = ctx.serviceManager.getService("modelService");
+    if (!modelService) throw new Error("Model service not initialized");
+    return await modelService.downloadPhoVoiceModel();
+  }),
+
+  getPhoVoiceStatus: procedure.query(async () => {
+    return phovoiceLocalService.getStatus();
+  }),
+
+  getPhoVoiceLogs: procedure.query(async () => {
+    return phovoiceLocalService.getLogs();
+  }),
+
+  clearPhoVoiceLogs: procedure.mutation(async () => {
+    phovoiceLocalService.clearLogs();
+    return { success: true };
+  }),
+
+  restartPhoVoiceEngine: procedure.mutation(async () => {
+    return await phovoiceLocalService.restartEngine();
+  }),
+
+  // eslint-disable-next-line deprecation/deprecation
+  onPhoVoiceLog: procedure.subscription(async () => {
+    return observable<{ log: string }>((emit) => {
+      const handler = (log: string) => emit.next({ log });
+      phovoiceLocalService.on("log", handler);
+      return () => phovoiceLocalService.off("log", handler);
     });
   }),
 });

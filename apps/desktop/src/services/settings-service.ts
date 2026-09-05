@@ -7,6 +7,10 @@ import {
   updateAppSettings,
 } from "../db/app-settings";
 import type { AppSettingsData, ModelSelection } from "../db/schema";
+import type {
+  MeetingTranscriptFontSize,
+  MeetingTranscriptMode,
+} from "../types/meeting-widget";
 
 export type DefaultUseCase = "transcription" | "formatting" | "embedding";
 import {
@@ -49,6 +53,9 @@ export interface MeetingWidgetSettings {
   visibility: MeetingWidgetVisibility;
   edge: MeetingWidgetEdge;
   normalizedPosition: number;
+  showTranscript: boolean;
+  transcriptMode: MeetingTranscriptMode;
+  transcriptFontSize: MeetingTranscriptFontSize;
 }
 
 export class SettingsService extends EventEmitter {
@@ -141,6 +148,9 @@ export class SettingsService extends EventEmitter {
       normalizedPosition: clampNormalizedPosition(
         meetingWidget?.normalizedPosition ?? 0.5,
       ),
+      showTranscript: meetingWidget?.showTranscript ?? true,
+      transcriptMode: meetingWidget?.transcriptMode ?? "full",
+      transcriptFontSize: meetingWidget?.transcriptFontSize ?? "sm",
     };
   }
 

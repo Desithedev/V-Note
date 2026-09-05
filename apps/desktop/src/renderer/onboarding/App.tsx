@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 // Screens
 import { WelcomeScreen } from "./components/screens/WelcomeScreen";
 import { PermissionsScreen } from "./components/screens/PermissionsScreen";
-import { DiscoverySourceScreen } from "./components/screens/DiscoverySourceScreen";
 import { ModelSelectionScreen } from "./components/screens/ModelSelectionScreen";
 import { CompletionScreen } from "./components/screens/CompletionScreen";
 
@@ -20,7 +19,6 @@ import {
   type SystemAudioPermissionStatus,
   type OnboardingState,
   type OnboardingPreferences,
-  type DiscoverySource,
 } from "../../types/onboarding";
 
 interface PermissionStatus {
@@ -46,7 +44,6 @@ export function App() {
   const [preferences, setPreferences] = useState<
     Partial<OnboardingPreferences>
   >({});
-  const [discoveryDetails, setDiscoveryDetails] = useState<string>("");
 
   // Hooks
   const { state, isLoading, savePreferences, completeOnboarding } =
@@ -68,7 +65,6 @@ export function App() {
   const screenOrder: OnboardingScreen[] = [
     OnboardingScreen.Welcome,
     OnboardingScreen.Permissions,
-    OnboardingScreen.DiscoverySource,
     OnboardingScreen.ModelSelection,
     OnboardingScreen.Completion,
   ];
@@ -85,8 +81,6 @@ export function App() {
       // Check feature flags
       if (flags) {
         if (screen === OnboardingScreen.Welcome && flags.skipWelcome)
-          return false;
-        if (screen === OnboardingScreen.DiscoverySource && flags.skipDiscovery)
           return false;
         if (screen === OnboardingScreen.ModelSelection && flags.skipModels)
           return false;
@@ -244,15 +238,6 @@ export function App() {
     });
   };
 
-  // Handle discovery source selection (telemetry tracked in backend)
-  const handleDiscoverySource = (source: DiscoverySource, details?: string) => {
-    setDiscoveryDetails(details || "");
-    handleSaveAndContinue({
-      discoverySource: source,
-      discoveryDetails: details,
-    });
-  };
-
   // Handle model selection (telemetry tracked in backend)
   const handleModelSelection = (modelId: string) => {
     handleSaveAndContinue({
@@ -314,16 +299,6 @@ export function App() {
             permissions={permissions}
             platform={platform}
             checkPermissions={checkPermissions}
-          />
-        );
-
-      case OnboardingScreen.DiscoverySource:
-        return (
-          <DiscoverySourceScreen
-            onNext={handleDiscoverySource}
-            onBack={navigateBack}
-            initialSource={preferences.discoverySource}
-            initialDetails={discoveryDetails}
           />
         );
 

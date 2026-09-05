@@ -9,6 +9,7 @@ import type {
   LocalWhisperConfig,
   OllamaConfig,
   OpenAICompatibleConfig,
+  PhoVoiceConfig,
 } from "../../db/schema";
 import {
   fetchAnthropicCatalog,
@@ -19,6 +20,7 @@ import {
   fetchOpenAICatalog,
   fetchOpenAICompatibleCatalog,
   fetchOpenRouterCatalog,
+  fetchPhoVoiceCatalog,
 } from "./fetchers";
 import type { CatalogEntry } from "./types";
 
@@ -60,6 +62,8 @@ export async function getCatalog(instance: Instance): Promise<CatalogEntry[]> {
       );
     case PROVIDER_TYPES.localWhisper:
       return fetchLocalWhisperCatalog(instance.config as LocalWhisperConfig);
+    case PROVIDER_TYPES.phovoice:
+      return fetchPhoVoiceCatalog(instance.config as PhoVoiceConfig);
     case PROVIDER_TYPES.mock:
       return fetchMockCatalog();
     case PROVIDER_TYPES.googleGemini:

@@ -7,6 +7,7 @@ import { type ProviderType } from "@/constants/provider-types";
 
 import DefaultCard from "./components/default-card";
 import ChangeDefaultDialog from "./components/change-default-dialog";
+import PhoVoiceManageCard from "./components/phovoice-manage-card";
 import ConnectedList from "./components/connected-list";
 import AvailableTiles from "./components/available-tiles";
 import WhisperManageDialog from "./components/whisper-manage-dialog";
@@ -34,6 +35,14 @@ export default function AIModelsSettingsPage() {
     <div>
       <h1 className="text-xl font-bold mb-6">{t("settings.aiModels.title")}</h1>
 
+      {/* PhoVoice 100% Local Engine Section */}
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">
+          PhoVoice AI Engine (Local)
+        </h2>
+        <PhoVoiceManageCard />
+      </section>
+
       <section className="mb-6">
         <h2 className="text-sm font-semibold text-muted-foreground mb-2">
           Defaults
@@ -42,7 +51,7 @@ export default function AIModelsSettingsPage() {
           <DefaultCard
             useCase="transcription"
             title="Transcription"
-            description="Converts speech to text in your meeting recordings, dictation flows, and any other audio prismical captures."
+            description="Converts speech to text in your meeting recordings, dictation flows, and any other audio V-Note captures."
             Icon={Mic}
             onChange={() => setChangeTarget("transcription")}
           />

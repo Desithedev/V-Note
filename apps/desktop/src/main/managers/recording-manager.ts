@@ -8,6 +8,8 @@ import type { ShortcutManager } from "./shortcut-manager";
 import { StreamingWavWriter } from "../../utils/streaming-wav-writer";
 import { AppError, ErrorCodes, type ErrorCode } from "../../types/error";
 import { getLatestTranscription } from "../../db/transcriptions";
+import { getInstanceById, getInstancesByProvider } from "../../db/instances";
+import { PROVIDER_TYPES } from "../../constants/provider-types";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { v4 as uuid } from "uuid";
@@ -660,8 +662,30 @@ export class RecordingManager extends EventEmitter {
   }
 
   private async ensureSpeechModelSelected(): Promise<boolean> {
+    const settingsService = this.serviceManager.getService("settingsService");
+    const defaultSelection = await settingsService?.getDefault("transcription");
+
+    if (defaultSelection && defaultSelection.instanceId) {
+      const instance = await getInstanceById(defaultSelection.instanceId);
+      if (instance) {
+        if (instance.provider === PROVIDER_TYPES.localWhisper) {
+          const modelService = this.serviceManager.getService("modelService");
+          const selectedModel = await modelService?.getSelectedModel();
+          if (selectedModel) return true;
+        } else {
+          // PhoVoice or other provider instance
+          return true;
+        }
+      }
+    }
+
+    const phovoiceInstances = await getInstancesByProvider(PROVIDER_TYPES.phovoice);
+    if (phovoiceInstances.length > 0) {
+      return true;
+    }
+
     const modelService = this.serviceManager.getService("modelService");
-    const selectedSpeechModel = await modelService.getSelectedModel();
+    const selectedSpeechModel = await modelService?.getSelectedModel();
 
     if (selectedSpeechModel) {
       return true;
@@ -817,7 +841,7 @@ export class RecordingManager extends EventEmitter {
    * Create audio file for recording session
    */
   private async createAudioFile(sessionId: string): Promise<string> {
-    const audioDir = path.join(app.getPath("temp"), "prismical-audio");
+    const audioDir = path.join(app.getPath("temp"), "v-note-audio");
     await fs.promises.mkdir(audioDir, { recursive: true });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");

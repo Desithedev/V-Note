@@ -9,7 +9,7 @@ import Image from "next/image";
  * Docs Layout: app/docs/layout.tsx
  */
 export const baseOptions: BaseLayoutProps = {
-  githubUrl: "https://github.com/amicalhq/prismical",
+  githubUrl: "https://github.com/Desithedev/V-Note",
   disableThemeSwitch: true,
   nav: {
     title: (
@@ -18,9 +18,9 @@ export const baseOptions: BaseLayoutProps = {
           src="/prismical-icon.svg"
           width={32}
           height={32}
-          alt="Prismical Logo"
+          alt="V-Note Logo"
         />
-        Prismical
+        V-Note
       </>
     ),
   },

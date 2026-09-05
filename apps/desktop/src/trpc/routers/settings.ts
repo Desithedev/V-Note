@@ -63,12 +63,16 @@ const RecordingSettingsSchema = z.object({
   silenceThreshold: z.number().optional(),
   maxRecordingDuration: z.number().optional(),
   preferredMicrophoneName: z.string().optional(),
+  storagePath: z.string().optional(),
 });
 
 const MeetingWidgetSettingsSchema = z.object({
   visibility: z.enum(["never", "while-recording", "always"]).optional(),
   edge: z.enum(["right", "bottom"]).optional(),
   normalizedPosition: z.number().min(0).max(1).optional(),
+  showTranscript: z.boolean().optional(),
+  transcriptMode: z.enum(["full", "caption"]).optional(),
+  transcriptFontSize: z.enum(["sm", "md", "lg"]).optional(),
 });
 
 export const settingsRouter = createRouter({
@@ -192,6 +196,74 @@ export const settingsRouter = createRouter({
         throw error;
       }
     }),
+
+  getRecordingSettings: procedure.query(async ({ ctx }) => {
+    const settingsService = ctx.serviceManager.getService("settingsService");
+    if (!settingsService) {
+      throw new Error("SettingsService not available");
+    }
+    return await settingsService.getRecordingSettings();
+  }),
+
+  selectAudioStoragePath: procedure.mutation(async ({ ctx }) => {
+    const { dialog } = require("electron");
+    const result = await dialog.showOpenDialog({
+      title: "Chọn thư mục lưu trữ file ghi âm",
+      properties: ["openDirectory", "createDirectory"],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false, path: null };
+    }
+
+    const selectedPath = result.filePaths[0];
+    const settingsService = ctx.serviceManager.getService("settingsService");
+    const current = (await settingsService?.getRecordingSettings()) ?? {
+      defaultFormat: "wav" as const,
+      sampleRate: 16000 as const,
+      autoStopSilence: true,
+      silenceThreshold: 3,
+      maxRecordingDuration: 60,
+    };
+
+    await settingsService?.setRecordingSettings({
+      ...current,
+      storagePath: selectedPath,
+    });
+
+    return { success: true, path: selectedPath };
+  }),
+
+  openAudioStoragePath: procedure.mutation(async ({ ctx }) => {
+    const { shell, app } = require("electron");
+    const settingsService = ctx.serviceManager.getService("settingsService");
+    const recording = await settingsService?.getRecordingSettings();
+    const targetPath =
+      recording?.storagePath?.trim() ||
+      path.join(app.getPath("userData"), "meetings");
+
+    await fs.mkdir(targetPath, { recursive: true });
+    await shell.openPath(targetPath);
+    return { success: true, path: targetPath };
+  }),
+
+  resetAudioStoragePath: procedure.mutation(async ({ ctx }) => {
+    const settingsService = ctx.serviceManager.getService("settingsService");
+    const current = (await settingsService?.getRecordingSettings()) ?? {
+      defaultFormat: "wav" as const,
+      sampleRate: 16000 as const,
+      autoStopSilence: true,
+      silenceThreshold: 3,
+      maxRecordingDuration: 60,
+    };
+
+    await settingsService?.setRecordingSettings({
+      ...current,
+      storagePath: undefined,
+    });
+
+    return { success: true };
+  }),
 
   getMeetingWidgetSettings: procedure.query(async ({ ctx }) => {
     const settingsService = ctx.serviceManager.getService("settingsService");
@@ -457,8 +529,8 @@ export const settingsRouter = createRouter({
   getLogFilePath: procedure.query(() => {
     const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
     return isDev
-      ? path.join(app.getPath("userData"), "logs", "prismical-dev.log")
-      : path.join(app.getPath("logs"), "prismical.log");
+      ? path.join(app.getPath("userData"), "logs", "v-note-dev.log")
+      : path.join(app.getPath("logs"), "v-note.log");
   }),
 
   // Get machine ID for display
@@ -485,12 +557,12 @@ export const settingsRouter = createRouter({
     const { dialog, BrowserWindow } = await import("electron");
     const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
     const logPath = isDev
-      ? path.join(app.getPath("userData"), "logs", "prismical-dev.log")
-      : path.join(app.getPath("logs"), "prismical.log");
+      ? path.join(app.getPath("userData"), "logs", "v-note-dev.log")
+      : path.join(app.getPath("logs"), "v-note.log");
 
     const focusedWindow = BrowserWindow.getFocusedWindow();
     const saveOptions = {
-      defaultPath: `prismical-logs-${new Date().toISOString().split("T")[0]}.log`,
+      defaultPath: `v-note-logs-${new Date().toISOString().split("T")[0]}.log`,
       filters: [{ name: "Log Files", extensions: ["log", "txt"] }],
     };
     const { filePath } = focusedWindow
@@ -706,10 +778,12 @@ export const settingsRouter = createRouter({
       const userDataPath = app.getPath("userData");
 
       // Delete database files (main db + WAL/SHM files)
-      const dbFile = path.join(userDataPath, "prismical.db");
-      await fs.rm(dbFile, { force: true }).catch(() => {});
-      await fs.rm(`${dbFile}-wal`, { force: true }).catch(() => {});
-      await fs.rm(`${dbFile}-shm`, { force: true }).catch(() => {});
+      for (const targetName of ["v-note.db", "prismical.db"]) {
+        const dbFile = path.join(userDataPath, targetName);
+        await fs.rm(dbFile, { force: true }).catch(() => {});
+        await fs.rm(`${dbFile}-wal`, { force: true }).catch(() => {});
+        await fs.rm(`${dbFile}-shm`, { force: true }).catch(() => {});
+      }
 
       // Delete models directory
       const modelsDir = path.join(userDataPath, "models");

@@ -16,7 +16,7 @@ interface DiscoverySourceScreenProps {
 }
 
 /**
- * Discovery source screen - asks how users found Prismical
+ * Discovery source screen - asks how users found V-Note
  */
 export function DiscoverySourceScreen({
   onNext,

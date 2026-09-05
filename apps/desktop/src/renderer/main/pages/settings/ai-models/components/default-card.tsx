@@ -20,6 +20,15 @@ function modelDisplayName(instanceType: string, modelId: string): string {
   if (instanceType === PROVIDER_TYPES.localWhisper) {
     return AVAILABLE_MODELS.find((m) => m.id === modelId)?.name ?? modelId;
   }
+  if (instanceType === PROVIDER_TYPES.phovoice) {
+    const PHOVOICE_NAMES: Record<string, string> = {
+      "68M": "⚖️ Zipformer 68M (Balanced / SOTA Tiếng Việt)",
+      "30M": "⚡ Zipformer 30M (Ultra Fast / Siêu nhanh)",
+      "VI-EN": "🌐 NghiASR INT8 (Song ngữ Việt - Anh)",
+      "MULTILINGUAL": "🌍 PengCheng Starling (Đa ngôn ngữ)",
+    };
+    return PHOVOICE_NAMES[modelId] ?? `PhoVoice ${modelId}`;
+  }
   return modelId;
 }
 
@@ -29,7 +38,7 @@ interface DefaultCardProps {
   useCase: UseCase;
   title: string;
   /** One-line explanation of what this default model is used for in
-   *  prismical. Sits under the title to orient users who don't yet
+   *  V-Note. Sits under the title to orient users who don't yet
    *  have a mental model for what each use case does. */
   description: string;
   Icon: ComponentType<{ className?: string }>;

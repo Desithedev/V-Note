@@ -7,7 +7,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { api } from "@/trpc/react";
 
-const DISMISSED_KEY = "prismical:llm-setup-prompt-dismissed";
+const DISMISSED_KEY = "v-note:llm-setup-prompt-dismissed";
+const LEGACY_DISMISSED_KEY = "prismical:llm-setup-prompt-dismissed";
 
 export function LLMSetupPromptToast() {
   const { t } = useTranslation();
@@ -18,7 +19,10 @@ export function LLMSetupPromptToast() {
 
   const [dismissed, setDismissed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(DISMISSED_KEY) === "1";
+    return (
+      window.localStorage.getItem(DISMISSED_KEY) === "1" ||
+      window.localStorage.getItem(LEGACY_DISMISSED_KEY) === "1"
+    );
   });
 
   const isOnboardingComplete = !!onboardingState.data?.completedVersion;

@@ -1,10 +1,15 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import log from "electron-log";
+import * as electronLog from "electron-log/main";
 import { app } from "electron";
 import path from "node:path";
 import colors from "ansi-colors";
+
+// electron-log is CommonJS. Depending on whether Vite bundles or externalizes
+// it, the runtime value can be exposed either directly or under `default`.
+// Normalize both shapes so packaged builds do not crash during startup.
+const log = ((electronLog as any).default ?? electronLog) as any;
 
 // Configure electron-log immediately when module is imported
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
@@ -36,8 +41,8 @@ log.transports.file.format =
 
 // Set custom log file path
 const logPath = isDev
-  ? path.join(app.getPath("userData"), "logs", "prismical-dev.log")
-  : path.join(app.getPath("logs"), "prismical.log");
+  ? path.join(app.getPath("userData"), "logs", "v-note-dev.log")
+  : path.join(app.getPath("logs"), "v-note.log");
 
 log.transports.file.resolvePathFn = () => logPath;
 

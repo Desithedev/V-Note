@@ -175,6 +175,15 @@ export class ServiceManager {
       logger.transcription.info("Transcription Service initialized", {
         client: "Pipeline with Whisper",
       });
+
+      // Automatically launch PhoVoice Local Engine in background
+      try {
+        const { phovoiceLocalService } = await import("../services/phovoice-local-service");
+        void phovoiceLocalService.startEngine();
+        logger.main.info("PhoVoice Local Engine background startup triggered");
+      } catch (err) {
+        logger.main.warn("PhoVoice Local Engine startup deferred:", err);
+      }
     } catch (error) {
       this.telemetryService?.captureException(error, {
         source: "service_manager",
@@ -193,7 +202,7 @@ export class ServiceManager {
 
   private initializePlatformServices(): void {
     logger.main.info(
-      "Native helpers are disabled in Prismical; skipping native bridge initialization",
+      "Native helpers are disabled in V-Note; skipping native bridge initialization",
     );
   }
 
@@ -421,6 +430,7 @@ export class ServiceManager {
     this.openAppShortcutManager = new OpenAppShortcutManager(
       this.settingsService,
       this.windowManager,
+      this.meetingManager,
     );
     this.openAppShortcutManager.initialize().catch((error) => {
       logger.main.error("Failed to initialize OpenAppShortcutManager", {

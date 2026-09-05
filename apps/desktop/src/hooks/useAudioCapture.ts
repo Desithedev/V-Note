@@ -160,7 +160,7 @@ export const useAudioCapture = ({
                 0,
               ) / Math.max(frame.length, 1),
             );
-            const hasActivity = rms > 0.015;
+            const hasActivity = rms > 0.015; // Voice activity indicator threshold (UI only)
 
             if (hasActivity) {
               setVoiceDetected(true);

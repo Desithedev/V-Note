@@ -49,6 +49,24 @@ export async function updateMeeting(
   return meeting ?? null;
 }
 
+let columnsChecked = false;
+export async function ensureTranscriptSegmentColumns(): Promise<void> {
+  if (columnsChecked) return;
+  try {
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN speaker_id TEXT;");
+  } catch {}
+  try {
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN speaker_label TEXT;");
+  } catch {}
+  try {
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN translation TEXT;");
+  } catch {}
+  try {
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN confidence REAL;");
+  } catch {}
+  columnsChecked = true;
+}
+
 export async function createTranscriptSegments(
   segments: Array<Omit<NewTranscriptSegment, "createdAt">>,
 ): Promise<TranscriptSegment[]> {
@@ -56,15 +74,83 @@ export async function createTranscriptSegments(
     return [];
   }
 
-  return await db
-    .insert(transcriptSegments)
-    .values(
-      segments.map((segment) => ({
-        ...segment,
-        createdAt: new Date(),
-      })),
+  await ensureTranscriptSegmentColumns();
+
+  try {
+    return await db
+      .insert(transcriptSegments)
+      .values(
+        segments.map((segment) => ({
+          id: (segment as any).id || crypto.randomUUID(),
+          ...segment,
+          createdAt: new Date(),
+        })),
+      )
+      .returning();
+  } catch (error) {
+    // If insert fails due to missing columns, force patch and retry once
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN speaker_id TEXT;").catch(() => {});
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN speaker_label TEXT;").catch(() => {});
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN translation TEXT;").catch(() => {});
+    await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN confidence REAL;").catch(() => {});
+
+    return await db
+      .insert(transcriptSegments)
+      .values(
+        segments.map((segment) => ({
+          id: (segment as any).id || crypto.randomUUID(),
+          ...segment,
+          createdAt: new Date(),
+        })),
+      )
+      .returning();
+  }
+}
+
+export async function replaceNonFinalTranscriptSegments(
+  meetingId: string,
+  segments: Array<Omit<NewTranscriptSegment, "createdAt">>,
+): Promise<TranscriptSegment[]> {
+  await db
+    .delete(transcriptSegments)
+    .where(
+      and(
+        eq(transcriptSegments.meetingId, meetingId),
+        eq(transcriptSegments.isFinal, false),
+      ),
+    );
+
+  return createTranscriptSegments(segments);
+}
+
+export async function updateTranscriptSegment(
+  id: string,
+  text: string,
+): Promise<TranscriptSegment | null> {
+  const [segment] = await db
+    .update(transcriptSegments)
+    .set({ text })
+    .where(eq(transcriptSegments.id, id))
+    .returning();
+  return segment ?? null;
+}
+
+export async function renameSpeakerSegments(
+  meetingId: string,
+  speakerId: string,
+  newLabel: string,
+): Promise<number> {
+  const result = await db
+    .update(transcriptSegments)
+    .set({ speakerLabel: newLabel })
+    .where(
+      and(
+        eq(transcriptSegments.meetingId, meetingId),
+        eq(transcriptSegments.speakerId, speakerId),
+      ),
     )
     .returning();
+  return result.length;
 }
 
 export async function createMeetingArtifacts(
@@ -236,10 +322,13 @@ export async function getNoteTranscript(
   const events: TranscriptEvent[] = [];
 
   for (const session of sessions) {
-    const sessionSegments = segmentsBySession.get(session.id) ?? [];
-    if (sessionSegments.length === 0) {
+    const rawSegments = segmentsBySession.get(session.id) ?? [];
+    if (rawSegments.length === 0) {
       continue;
     }
+
+    const hasFinal = rawSegments.some((s) => s.isFinal);
+    const sessionSegments = hasFinal ? rawSegments.filter((s) => s.isFinal) : rawSegments;
 
     for (const segment of sessionSegments) {
       events.push(
@@ -297,6 +386,55 @@ export async function deleteMeeting(id: string): Promise<Meeting | null> {
   return meeting ?? null;
 }
 
+export async function deleteTranscriptByNoteId(noteId: number): Promise<void> {
+  const noteMeetings = await db
+    .select({ id: meetings.id })
+    .from(meetings)
+    .where(eq(meetings.noteId, noteId));
+
+  const meetingIds = noteMeetings.map((m) => m.id);
+  if (meetingIds.length > 0) {
+    await db
+      .delete(transcriptSegments)
+      .where(inArray(transcriptSegments.meetingId, meetingIds));
+  }
+}
+
+export interface NoteAudioArtifact {
+  id: string;
+  meetingId: string;
+  artifactType: "mic_wav" | "mic_processed_wav" | "system_wav" | "debug_json";
+  path: string;
+  sizeBytes: number;
+}
+
+export async function getNoteAudioArtifacts(
+  noteId: number,
+): Promise<NoteAudioArtifact[]> {
+  const sessions = await db
+    .select({ id: meetings.id })
+    .from(meetings)
+    .where(eq(meetings.noteId, noteId))
+    .orderBy(desc(meetings.startedAt));
+
+  if (sessions.length === 0) return [];
+  const sessionIds = sessions.map((s) => s.id);
+
+  const artifacts = await db
+    .select()
+    .from(meetingArtifacts)
+    .where(inArray(meetingArtifacts.meetingId, sessionIds))
+    .orderBy(asc(meetingArtifacts.createdAt));
+
+  return artifacts.map((a) => ({
+    id: a.id,
+    meetingId: a.meetingId,
+    artifactType: a.artifactType as NoteAudioArtifact["artifactType"],
+    path: a.path,
+    sizeBytes: a.sizeBytes,
+  }));
+}
+
 function toTranscriptEvent(
   segment: TranscriptSegment,
   options: {
@@ -311,9 +449,15 @@ function toTranscriptEvent(
     noteId: options.noteId ?? null,
     source: segment.source as TranscriptEvent["source"],
     speaker: segment.speaker as TranscriptEvent["speaker"],
+    speakerId: segment.speakerId ?? undefined,
+    speakerLabel: segment.speakerLabel ?? undefined,
     text: segment.text,
+    translation: segment.translation ?? undefined,
+    confidence: segment.confidence ?? undefined,
     startTimeMs: segment.startTimeMs + offsetMs,
     endTimeMs: segment.endTimeMs + offsetMs,
+    rawStartTimeMs: segment.startTimeMs,
+    rawEndTimeMs: segment.endTimeMs,
     segmentOrder: segment.segmentOrder,
     isFinal: segment.isFinal,
     createdAt: segment.createdAt,

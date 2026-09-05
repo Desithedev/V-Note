@@ -1,7 +1,7 @@
 {
   "name": "@prismical/types",
   "version": "1.0.0",
-  "description": "Shared type definitions and schema generation for Prismical",
+  "description": "Shared type definitions and schema generation for V-Note",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,7 @@
     "type:check": "tsc --noEmit"
   },
   "keywords": [
-    "prismical",
+    "v-note",
     "types",
     "schemas",
     "rpc"

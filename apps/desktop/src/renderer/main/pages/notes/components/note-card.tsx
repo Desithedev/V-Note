@@ -42,9 +42,16 @@ export function NoteCard({
 
       {/* Note Content */}
       <div className="flex-1 min-w-0">
-        {/* Note Name */}
-        <div className="font-medium text-foreground text-sm leading-tight">
-          {note.title}
+        {/* Note Name & Audio Badge */}
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="font-medium text-foreground text-sm leading-tight truncate">
+            {note.title}
+          </div>
+          {(note.audioFile || note.title?.startsWith("🎙️")) && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/25">
+              🎙️ Audio
+            </span>
+          )}
         </div>
 
         {/* Date and Meeting Info */}

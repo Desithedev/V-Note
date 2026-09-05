@@ -41,9 +41,6 @@ function AppShell() {
         <LLMSetupPromptToast />
         <TranscriptionDownloadWidget />
       </div>
-      {process.env.NODE_ENV === "development" && (
-        <TanStackRouterDevtools position="bottom-right" />
-      )}
     </>
   );
 }

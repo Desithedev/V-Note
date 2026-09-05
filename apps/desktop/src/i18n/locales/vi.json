@@ -1,0 +1,1007 @@
+{
+  "app": {
+    "loading": "Đang tải V-Note..."
+  },
+  "errors": {
+    "generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+  },
+  "menu": {
+    "file": "Tập tin",
+    "edit": "Chỉnh sửa",
+    "view": "Xem",
+    "window": "Cửa sổ",
+    "help": "Trợ giúp",
+    "settings": "Cài đặt",
+    "checkForUpdates": "Kiểm tra cập nhật...",
+    "openAllDevTools": "Mở công cụ nhà phát triển",
+    "learnMore": "Tìm hiểu thêm",
+    "speech": "Giọng nói",
+    "version": "Phiên bản {{version}}"
+  },
+  "tray": {
+    "tooltip": "V-Note",
+    "openConsole": "Mở Console",
+    "about": "Giới thiệu",
+    "quit": "Thoát"
+  },
+  "updater": {
+    "updateAvailable": "Có bản cập nhật mới",
+    "requiredUpdate": "Cập nhật bắt buộc",
+    "versionAvailable": "Đã có phiên bản {{version}}.",
+    "versionRequired": "Yêu cầu phiên bản {{version}}.",
+    "updateAvailableGeneric": "Có một bản cập nhật mới sẵn sàng.",
+    "updateRequiredGeneric": "Cần cập nhật ứng dụng để tiếp tục.",
+    "restartAndUpdate": "Khởi động lại & Cập nhật",
+    "later": "Để sau"
+  },
+  "onboarding": {
+    "app": {
+      "loading": "Đang tải thiết lập ban đầu...",
+      "unknownScreen": "Màn hình không xác định"
+    },
+    "navigation": {
+      "back": "Quay lại",
+      "continue": "Tiếp tục",
+      "complete": "Hoàn tất"
+    },
+    "progress": {
+      "step": "Bước {{current}} / {{total}}"
+    },
+    "toast": {
+      "loadStateFailed": "Không thể tải trạng thái thiết lập",
+      "savePreferencesFailed": "Không thể lưu cài đặt. Vui lòng thử lại.",
+      "completed": "Thiết lập hoàn tất!",
+      "completeFailed": "Không thể hoàn tất thiết lập. Vui lòng thử lại.",
+      "resetSuccess": "Đã đặt lại thiết lập ban đầu",
+      "resetFailed": "Không thể đặt lại thiết lập"
+    },
+    "errorBoundary": {
+      "title": "Đã có lỗi xảy ra",
+      "description": "Đã xảy ra lỗi trong quá trình thiết lập. Vui lòng thử lại.",
+      "tryAgain": "Thử lại",
+      "restart": "Bắt đầu lại thiết lập",
+      "supportNote": "Nếu lỗi vẫn tiếp diễn, vui lòng liên hệ hỗ trợ hoặc xem tài liệu."
+    },
+    "welcome": {
+      "title": "Ghi chú thông minh với AI",
+      "subtitle": "Mã nguồn mở & Bảo mật riêng tư",
+      "continue": "Bắt đầu ngay"
+    },
+    "permissions": {
+      "title": "Cấp quyền truy cập",
+      "subtitle": "V-Note cần quyền Micro và âm thanh hệ thống để hoạt động tốt nhất",
+      "waiting": "Đang đợi cấp quyền...",
+      "polling": "Đang kiểm tra quyền...",
+      "allGranted": {
+        "title": "Đã cấp đủ quyền",
+        "description": "Mọi thứ đã sẵn sàng! Bạn có thể tiếp tục sang bước tiếp theo."
+      },
+      "status": {
+        "granted": "Đã cấp quyền",
+        "denied": "Bị từ chối quyền",
+        "notRequested": "Chưa yêu cầu quyền",
+        "required": "Yêu cầu quyền"
+      },
+      "actions": {
+        "request": "Yêu cầu quyền",
+        "requesting": "Đang yêu cầu...",
+        "openSettings": "Mở Cài đặt hệ thống"
+      },
+      "microphone": {
+        "title": "Quyền truy cập Micro",
+        "description": "Cần thiết để thu âm và phiên âm giọng nói",
+        "deniedHelp": "Vui lòng cấp quyền Micro trong Cài đặt hệ thống"
+      },
+      "systemAudio": {
+        "title": "Quyền âm thanh hệ thống",
+        "description": "Cần thiết để thu âm cuộc họp / video trên máy tính",
+        "deniedHelp": "Cho phép V-Note thu âm thanh hệ thống trong Cài đặt."
+      }
+    },
+    "discovery": {
+      "title": "Bạn biết đến V-Note qua đâu?",
+      "subtitle": "Điều này giúp chúng tôi hiểu rõ hơn về người dùng",
+      "sources": {
+        "searchEngine": "Công cụ tìm kiếm (Google, Bing,...)",
+        "socialMedia": "Mạng xã hội (Facebook, Twitter, LinkedIn,...)",
+        "wordOfMouth": "Bạn bè hoặc đồng nghiệp giới thiệu",
+        "blogArticle": "Bài viết blog / tin tức",
+        "github": "GitHub",
+        "aiAssistant": "Trợ lý AI (ChatGPT, Claude,...)",
+        "other": "Khác"
+      },
+      "toast": {
+        "selectSource": "Vui lòng chọn nguồn bạn biết đến V-Note",
+        "otherDetailsRequired": "Vui lòng nhập chi tiết cho mục \"Khác\""
+      },
+      "other": {
+        "label": "Vui lòng mô tả cụ thể",
+        "placeholder": "Cho chúng tôi biết thêm...",
+        "charCount": "{{count}}/{{max}} ký tự"
+      }
+    },
+    "modelSelection": {
+      "title": "Chọn mô hình nhận diện giọng nói",
+      "subtitle": "Mô hình chạy trực tiếp trên thiết bị hoặc máy chủ cục bộ. Bạn có thể thay đổi sau trong Cài đặt.",
+      "loading": "Đang tải danh sách mô hình...",
+      "recommendedForYou": "Được đề xuất cho bạn",
+      "recommendationReason": "Dựa trên cấu hình máy tính của bạn.",
+      "otherModels": "Các mô hình khác",
+      "otherModelsDescription": "Chọn kích thước phù hợp giữa tốc độ và độ chính xác.",
+      "alreadyDownloaded": "Đã tải về sẵn",
+      "table": {
+        "model": "Mô hình",
+        "speed": "Tốc độ",
+        "accuracy": "Độ chính xác",
+        "size": "Dung lượng"
+      },
+      "actions": {
+        "downloadAndContinue": "Tải về và tiếp tục",
+        "continue": "Tiếp tục"
+      },
+      "toast": {
+        "selectModel": "Vui lòng chọn một mô hình"
+      }
+    },
+    "downloadWidget": {
+      "downloading": "Đang tải {{name}}",
+      "ready": "{{name}} đã sẵn sàng",
+      "cancel": "Hủy tải",
+      "dismiss": "Đóng"
+    },
+    "llmPrompt": {
+      "title": "Thiết lập mô hình AI",
+      "description": "Kết nối mô hình ngôn ngữ (LLM) để tạo ghi chú thông minh và tóm tắt cuộc họp.",
+      "setup": "Thiết lập ngay",
+      "skip": "Để sau"
+    },
+    "completion": {
+      "title": "Bạn đã hoàn tất!",
+      "subtitle": "Chào mừng bạn đến với V-Note.",
+      "start": "Bắt đầu sử dụng V-Note"
+    }
+  },
+  "recordingNotifications": {
+    "notifications": {
+      "micFallback": "Micro của bạn",
+      "discordAlt": "Discord",
+      "copyErrorId": "Sao chép mã lỗi",
+      "recordingSaved": "Bản ghi âm đã được lưu. Bạn có thể xem lại trong Lịch sử.",
+      "dismiss": "Bỏ qua thông báo",
+      "description": {
+        "noAudio": "Không có âm thanh từ \"{{microphone}}\"",
+        "emptyTranscript": "Không phát hiện giọng nói từ \"{{microphone}}\"",
+        "transcriptionFailed": "Đã xảy ra lỗi trong quá trình phiên âm"
+      },
+      "action": {
+        "logIn": "Đăng nhập",
+        "support": "Hỗ trợ",
+        "viewUsage": "Xem mức sử dụng",
+        "viewHistory": "Xem lịch sử",
+        "settings": "Cài đặt",
+        "aiModels": "Mô hình AI",
+        "configureMicrophone": "Cấu hình Micro"
+      },
+      "type": {
+        "noAudio": {
+          "title": "Không phát hiện âm thanh",
+          "description": "Kiểm tra lại cài đặt micro của bạn"
+        },
+        "emptyTranscript": {
+          "title": "Không phát hiện giọng nói",
+          "description": "Hãy thử nói to hơn hoặc lại gần micro"
+        }
+      },
+      "errorCode": {
+        "authRequired": {
+          "title": "Yêu cầu đăng nhập",
+          "description": "Vui lòng đăng nhập để sử dụng phiên âm đám mây"
+        },
+        "rateLimitExceeded": {
+          "title": "Vượt quá giới hạn",
+          "description": "Bạn đã đạt đến hạn mức phiên âm"
+        },
+        "internalServerError": {
+          "title": "Lỗi máy chủ",
+          "description": "Vui lòng thử lại sau"
+        },
+        "unknown": {
+          "title": "Phiên âm thất bại",
+          "description": "Đã xảy ra lỗi không xác định"
+        },
+        "networkError": {
+          "title": "Lỗi kết nối",
+          "description": "Vui lòng kiểm tra lại kết nối mạng"
+        },
+        "modelMissing": {
+          "title": "Chưa chọn mô hình",
+          "description": "Vui lòng chọn một mô hình phiên âm trong Cài đặt."
+        },
+        "workerInitializationFailed": {
+          "title": "Khởi động thất bại",
+          "description": "Không thể khởi chạy công cụ phiên âm"
+        },
+        "workerCrashed": {
+          "title": "Động cơ phiên âm bị dừng",
+          "description": "Vui lòng thử lại"
+        },
+        "localTranscriptionFailed": {
+          "title": "Phiên âm cục bộ thất bại",
+          "description": "Lỗi xử lý âm thanh"
+        }
+      }
+    }
+  },
+  "settings": {
+    "nav": {
+      "home": {
+        "title": "Trang chủ",
+        "description": "Xem tổng quan ngày làm việc của bạn"
+      },
+      "notes": {
+        "title": "Ghi chú",
+        "description": "Quản lý và soạn thảo ghi chú"
+      },
+      "skills": {
+        "title": "Kỹ năng AI",
+        "description": "Quản lý câu lệnh AI giúp xử lý ghi chú — viết tiếp, viết lại, tóm tắt"
+      },
+      "preferences": {
+        "title": "Tùy chọn chung",
+        "description": "Cấu hình giao diện, khởi động và hành vi ứng dụng"
+      },
+      "dictation": {
+        "title": "Phiên âm giọng nói",
+        "description": "Cấu hình ngôn ngữ phiên âm và thiết bị micro"
+      },
+      "shortcuts": {
+        "title": "Phím tắt",
+        "description": "Tùy chỉnh các phím tắt và tổ hợp phím nhanh"
+      },
+      "vocabulary": {
+        "title": "Từ vựng chuyên ngành",
+        "description": "Thêm thuật ngữ, từ viết tắt và tên riêng để AI nhận diện chính xác"
+      },
+      "aiModels": {
+        "title": "Mô hình AI",
+        "description": "Quản lý kết nối mô hình nhận diện giọng nói và LLM"
+      },
+      "history": {
+        "title": "Lịch sử",
+        "description": "Xem và quản lý lịch sử các bản ghi âm"
+      },
+      "advanced": {
+        "title": "Nâng cao",
+        "description": "Quản lý dữ liệu lưu trữ, nhật ký hệ thống và cài đặt chuyên sâu"
+      },
+      "about": {
+        "title": "Giới thiệu",
+        "description": "Thông tin phiên bản và tài nguyên V-Note"
+      }
+    },
+    "sidebar": {
+      "docs": "Tài liệu",
+      "community": "Cộng đồng",
+      "discordAlt": "Discord",
+      "logoAlt": "Logo V-Note",
+      "brand": "V-Note",
+      "backToHome": "Quay về trang chủ",
+      "favorites": "Yêu thích",
+      "folders": "Thư mục",
+      "noFavorites": "Chưa có mục yêu thích",
+      "noFolders": "Chưa có thư mục nào",
+      "folderEmpty": "Không có ghi chú",
+      "viewAllFolders": "Xem tất cả",
+      "tags": "Thẻ",
+      "tagsViewAll": "Xem tất cả",
+      "noTags": "Chưa có thẻ nào"
+    },
+    "search": {
+      "buttonLabel": "Tìm kiếm",
+      "buttonPlaceholder": "Tìm kiếm...",
+      "inputPlaceholder": "Tìm ghi chú, thư mục, thẻ, cài đặt...",
+      "noResults": "Không tìm thấy kết quả phù hợp.",
+      "recentHeading": "Gần đây",
+      "actionsHeading": "Thao tác nhanh",
+      "settingsHeading": "Cài đặt",
+      "notesHeading": "Ghi chú",
+      "foldersHeading": "Thư mục",
+      "tagsHeading": "Thẻ",
+      "hintOpen": "Mở",
+      "hintNavigate": "Điều hướng",
+      "hintClose": "Đóng",
+      "actions": {
+        "newNote": "Ghi chú mới",
+        "newNoteAlt": "Tạo ghi chú mới",
+        "newFolder": "Thư mục mới",
+        "newFolderAlt": "Tạo thư mục mới"
+      }
+    },
+    "home": {
+      "greeting": {
+        "morning": "Chào buổi sáng",
+        "afternoon": "Chào buổi chiều",
+        "evening": "Chào buổi tối"
+      },
+      "subtitle": "Tổng hợp công việc và ghi chú tiếp theo của bạn.",
+      "upcoming": {
+        "title": "Sắp diễn ra",
+        "today": "Hôm nay",
+        "tomorrow": "Ngày mai",
+        "notes": "Ghi chú",
+        "join": "Tham gia",
+        "allEvents": "Tất cả sự kiện"
+      },
+      "notes": {
+        "today": "Hôm nay",
+        "earlier": "Trước đó",
+        "all": "Ghi chú"
+      }
+    },
+    "preferences": {
+      "title": "Tùy chọn chung",
+      "description": "Tùy chỉnh giao diện và hành vi hoạt động của ứng dụng",
+      "toast": {
+        "updated": "Đã cập nhật tùy chọn",
+        "updateFailed": "Không thể cập nhật tùy chọn. Vui lòng thử lại."
+      },
+      "launchAtLogin": {
+        "label": "Khởi động cùng máy tính",
+        "description": "Tự động chạy ứng dụng khi bạn đăng nhập vào máy tính"
+      },
+      "showInDock": {
+        "label": "Hiện trên thanh Taskbar / Dock",
+        "description": "Hiển thị biểu tượng ứng dụng trên thanh Taskbar"
+      },
+      "autoTranscribeOnNewNote": {
+        "label": "Tự động phiên âm khi tạo ghi chú",
+        "description": "Tự động bắt đầu ghi âm và phiên âm ngay khi tạo ghi chú mới"
+      },
+      "meetingWidget": {
+        "label": "Widget nổi ghi âm",
+        "description": "Hiển thị nút ghi âm nổi ở cạnh màn hình khi ứng dụng chạy ngầm",
+        "options": {
+          "never": "Không bao giờ",
+          "whileRecording": "Chỉ khi đang ghi âm",
+          "always": "Luôn luôn"
+        }
+      },
+      "language": {
+        "label": "Ngôn ngữ giao diện",
+        "description": "Chọn ngôn ngữ hiển thị trong toàn bộ ứng dụng",
+        "options": {
+          "system": "Mặc định hệ thống",
+          "en": "English",
+          "vi": "Tiếng Việt",
+          "es": "Español",
+          "ja": "日本語"
+        },
+        "restartDialog": {
+          "title": "Yêu cầu khởi động lại",
+          "description": "Khởi động lại V-Note để áp dụng ngôn ngữ mới. Bạn cũng có thể áp dụng ở lần mở app kế tiếp.",
+          "restartNow": "Khởi động lại ngay",
+          "later": "Áp dụng lần sau"
+        },
+        "toast": {
+          "applyNextStart": "Ngôn ngữ mới sẽ áp dụng ở lần mở tiếp theo.",
+          "restarting": "Đang khởi động lại..."
+        }
+      },
+      "theme": {
+        "label": "Giao diện màu sắc",
+        "description": "Chọn chế độ hiển thị Sáng, Tối hoặc Tự động theo hệ thống"
+      }
+    },
+    "advanced": {
+      "title": "Nâng cao",
+      "description": "Quản lý dữ liệu lưu trữ, nhật ký hệ thống và cài đặt chuyên sâu",
+      "cardTitle": "Cài đặt nâng cao",
+      "cardDescription": "Các tùy chọn cấu hình hệ thống",
+      "preloadModel": {
+        "label": "Tải trước mô hình",
+        "description": "Tải sẵn mô hình AI vào bộ nhớ khi mở app để nhận diện nhanh hơn"
+      },
+      "debugMode": {
+        "label": "Chế độ gỡ lỗi (Debug)",
+        "description": "Ghi lại nhật ký chi tiết hơn"
+      },
+      "updateChannel": {
+        "label": "Kênh cập nhật",
+        "description": "Chọn kênh nhận bản cập nhật mới",
+        "options": {
+          "stable": "Ổn định (Stable)",
+          "beta": "Thử nghiệm (Beta)"
+        },
+        "toast": {
+          "updated": "Đã đổi kênh cập nhật",
+          "updateFailed": "Không thể đổi kênh cập nhật. Vui lòng thử lại."
+        }
+      },
+      "telemetry": {
+        "label": "Thu thập dữ liệu ẩn danh",
+        "description": "Giúp cải thiện V-Note bằng cách chia sẻ dữ liệu sử dụng ẩn danh.",
+        "learnMore": "Tìm hiểu thêm"
+      },
+      "dataLocation": {
+        "label": "Thư mục dữ liệu ứng dụng"
+      },
+      "logLocation": {
+        "label": "Vị trí file nhật ký (Log)",
+        "download": "Tải xuống"
+      },
+      "machineId": {
+        "label": "Mã định danh máy (Machine ID)",
+        "copy": "Sao chép"
+      },
+      "loadingValue": "Đang tải...",
+      "dangerZone": {
+        "title": "Khu vực nguy hiểm",
+        "description": "Các thao tác tại đây không thể khôi phục và sẽ xóa toàn bộ dữ liệu của bạn"
+      },
+      "reset": {
+        "label": "Đặt lại ứng dụng",
+        "description": "Xóa toàn bộ dữ liệu và bắt đầu lại từ đầu",
+        "button": "Đặt lại ứng dụng",
+        "dialog": {
+          "title": "Bạn có hoàn toàn chắc chắn không?",
+          "description": "Hành động này không thể hoàn tác. Toàn bộ dữ liệu sau sẽ bị xóa vĩnh viễn:",
+          "items": {
+            "transcriptions": "Tất cả các bản phiên âm",
+            "notes": "Tất cả ghi chú của bạn",
+            "vocabulary": "Từ vựng chuyên ngành đã lưu",
+            "settings": "Mọi cài đặt và tùy chọn",
+            "models": "Các mô hình đã tải về"
+          },
+          "footer": "Ứng dụng sẽ khởi động lại như khi vừa mới cài đặt.",
+          "cancel": "Hủy",
+          "confirm": "Đồng ý, xóa mọi dữ liệu"
+        }
+      },
+      "toast": {
+        "settingsUpdated": "Đã cập nhật cài đặt",
+        "settingsUpdateFailed": "Không thể cập nhật cài đặt. Vui lòng thử lại.",
+        "telemetryUpdated": "Đã cập nhật tùy chọn thu thập dữ liệu",
+        "telemetryUpdateFailed": "Không thể cập nhật. Vui lòng thử lại.",
+        "resetting": "Đang đặt lại ứng dụng...",
+        "resetSuccess": "Đã đặt lại ứng dụng thành công. Đang khởi động lại...",
+        "resetFailed": "Không thể đặt lại ứng dụng. Vui lòng thử lại.",
+        "logSaved": "Đã lưu file nhật ký",
+        "logSaveFailed": "Không thể lưu file nhật ký",
+        "machineIdCopied": "Đã sao chép Machine ID vào bộ nhớ tạm"
+      }
+    },
+    "about": {
+      "title": "Giới thiệu",
+      "description": "Thông tin phiên bản, tài nguyên và liên kết hỗ trợ",
+      "toast": {
+        "upToDate": "Bạn đang dùng phiên bản mới nhất"
+      },
+      "currentVersion": "Phiên bản hiện tại",
+      "resources": {
+        "title": "Tài nguyên & Cộng đồng",
+        "description": "Nhận trợ giúp, báo lỗi và theo dõi các thay đổi mới nhất",
+        "changeLog": {
+          "title": "Lịch sử cập nhật",
+          "description": "Xem chi tiết các thay đổi trong từng phiên bản"
+        },
+        "github": {
+          "title": "Kho mã nguồn GitHub",
+          "description": "Mã nguồn mở và theo dõi lỗi phát triển",
+          "alt": "GitHub"
+        },
+        "discord": {
+          "title": "Cộng đồng Discord",
+          "description": "Tham gia trao đổi và hỗ trợ cộng đồng",
+          "alt": "Discord"
+        }
+      },
+      "contact": {
+        "title": "Liên hệ",
+        "description": "Liên hệ với đội ngũ phát triển để được hỗ trợ",
+        "emailCta": "Gửi email cho chúng tôi"
+      }
+    },
+    "history": {
+      "title": "Lịch sử",
+      "description": "Lịch sử các bản phiên âm gần đây",
+      "item": {
+        "failed": "phiên âm thất bại",
+        "noWords": "không phát hiện từ ngữ"
+      },
+      "readMore": "Xem thêm",
+      "actions": {
+        "copy": "Sao chép",
+        "pauseAudio": "Tạm dừng phát",
+        "playAudio": "Phát âm thanh",
+        "downloadAudio": "Tải file âm thanh",
+        "delete": "Xóa",
+        "retry": "Thử phiên âm lại",
+        "report": "Báo cáo sự cố",
+        "reportDisabledTelemetry": "Bật thu thập dữ liệu ẩn danh trong Cài đặt nâng cao để báo cáo sự cố"
+      },
+      "report": {
+        "title": "Báo cáo sự cố phiên âm",
+        "description": "Mô tả vấn đề gặp phải với bản phiên âm này. Phản hồi của bạn giúp chúng tôi cải thiện tốt hơn.",
+        "placeholder": "VD: Bị mất từ, nhận dạng sai ngôn ngữ, nội dung vô nghĩa...",
+        "cancel": "Hủy",
+        "submit": "Gửi báo cáo"
+      },
+      "dialog": {
+        "title": "Chi tiết bản phiên âm"
+      },
+      "toast": {
+        "deleted": "Đã xóa bản phiên âm",
+        "deleteFailed": "Không thể xóa bản phiên âm",
+        "downloaded": "Đã tải file âm thanh",
+        "downloadFailed": "Không thể tải file âm thanh",
+        "loadAudioFailed": "Không thể mở file âm thanh",
+        "copied": "Đã sao chép vào bộ nhớ tạm",
+        "retrySuccess": "Đã thực hiện phiên âm lại thành công",
+        "retryFailed": "Phiên âm lại thất bại",
+        "reportSuccess": "Đã gửi báo cáo thành công. Cảm ơn phản hồi của bạn!",
+        "reportFailed": "Không thể gửi báo cáo. Vui lòng thử lại."
+      },
+      "search": {
+        "placeholder": "Tìm kiếm bản phiên âm..."
+      },
+      "empty": {
+        "searchTitle": "Không tìm thấy bản phiên âm nào",
+        "searchDescription": "Hãy thử thay đổi từ khóa tìm kiếm.",
+        "defaultTitle": "Chưa có lịch sử phiên âm",
+        "defaultDescription": "Các bản ghi âm và phiên âm gần đây sẽ xuất hiện tại đây."
+      },
+      "group": {
+        "today": "Hôm nay",
+        "yesterday": "Hôm qua",
+        "earlier": "Trước đó"
+      }
+    },
+    "dictation": {
+      "title": "Phiên âm giọng nói",
+      "description": "Cấu hình ngôn ngữ nhận diện và thiết bị micro",
+      "language": {
+        "autoDetect": {
+          "label": "Tự động nhận diện ngôn ngữ",
+          "description": "Tự động phát hiện ngôn ngữ đang nói. Tắt để cố định ngôn ngữ cụ thể.",
+          "tooltip": "Tắt tự động để chọn ngôn ngữ cố định (giúp tăng độ chính xác)."
+        },
+        "languagesLabel": "Ngôn ngữ",
+        "languagesPlaceholder": "Chọn ngôn ngữ..."
+      },
+      "microphone": {
+        "label": "Thiết bị Micro",
+        "description": "Chọn micro mặc định để thu âm.",
+        "placeholder": "Chọn một micro",
+        "systemDefault": "Mặc định hệ thống",
+        "systemDefaultWithName": "Mặc định hệ thống ({{deviceName}})",
+        "noDevices": "Không tìm thấy micro nào",
+        "noDevicesHelp": "Chưa phát hiện thiết bị thu âm. Vui lòng kiểm tra lại kết nối micro.",
+        "toast": {
+          "changed": "Đã đổi micro sang {{deviceName}}",
+          "systemDefault": "Đang dùng micro mặc định của hệ thống",
+          "changeFailed": "Không thể đổi thiết bị micro"
+        }
+      }
+    },
+    "shortcuts": {
+      "title": "Phím tắt",
+      "description": "Cấu hình phím tắt toàn cục và xem các phím tắt trong ứng dụng",
+      "toast": {
+        "pushToTalkUpdated": "Đã cập nhật phím tắt Nhấn để nói",
+        "handsFreeUpdated": "Đã cập nhật phím tắt Rảnh tay",
+        "pasteLastTranscriptUpdated": "Đã cập nhật phím tắt Dán phiên âm",
+        "newNoteUpdated": "Đã cập nhật phím tắt Tạo ghi chú mới",
+        "openAppUpdated": "Đã cập nhật phím tắt Mở V-Note"
+      },
+      "pushToTalk": {
+        "label": "Nhấn để nói (Push to talk)",
+        "description": "Giữ phím để thu âm, nhả phím để kết thúc và phiên âm"
+      },
+      "handsFree": {
+        "label": "Chế độ rảnh tay (Hands-free)",
+        "description": "Bấm phím 1 lần để bắt đầu ghi âm, bấm lại lần nữa để dừng"
+      },
+      "pasteLastTranscript": {
+        "label": "Dán bản phiên âm gần nhất",
+        "description": "Tự động dán nội dung phiên âm mới nhất vào cửa sổ ứng dụng đang hoạt động"
+      },
+      "newNote": {
+        "label": "Tạo ghi chú mới",
+        "description": "Mở cửa sổ ghi chú và tạo ngay một ghi chú mới"
+      },
+      "openApp": {
+        "label": "Bật/Tắt cửa sổ V-Note",
+        "description": "Hiện cửa sổ V-Note từ bất kỳ đâu, hoặc ẩn đi nếu đang mở"
+      },
+      "builtIn": {
+        "title": "Phím tắt trong ứng dụng",
+        "description": "Có tác dụng khi đang ở trong cửa sổ V-Note.",
+        "newNote": "Tạo ghi chú mới",
+        "commandSearch": "Mở bảng tìm kiếm nhanh",
+        "home": "Về trang chủ",
+        "preferences": "Mở tùy chọn chung",
+        "toggleSidebar": "Ẩn/Hiện thanh bên",
+        "back": "Quay lại",
+        "forward": "Tiến tới"
+      },
+      "validation": {
+        "noKeysDetected": "Chưa nhận diện phím",
+        "tooManyKeys": "Quá nhiều phím - dùng tối đa {{max}} phím",
+        "invalidKeyCombination": "Tổ hợp phím không hợp lệ",
+        "alreadyAssigned": "Phím tắt đã được gán cho chức năng khác",
+        "conflictsWithSystem": "{{shortcut}} bị trùng với phím tắt hệ thống",
+        "addModifier": "Thêm phím bổ trợ như Cmd, Ctrl, Alt hoặc Shift",
+        "duplicateModifierPairs": "Không thể dùng đồng thời 2 phím {{modifier}} trái và phải",
+        "overlapsWithPushToTalk": "Phím này bị trùng với phím Nhấn để nói"
+      },
+      "input": {
+        "pressKeys": "Nhấn tổ hợp phím..."
+      }
+    },
+    "events": {
+      "title": "Tất cả sự kiện",
+      "empty": {
+        "title": "Không có sự kiện sắp tới",
+        "description": "Các sự kiện lịch của bạn sẽ hiển thị tại đây"
+      }
+    },
+    "notes": {
+      "sidebarButtonLabel": "Ghi chú",
+      "importAudio": "Nhập âm thanh",
+      "importingAudio": "Đang xử lý...",
+      "create": "Ghi chú mới",
+      "defaultTitleWithDate": "Ghi chú - {{date}}",
+      "untitledTitle": "Ghi chú chưa đặt tên",
+      "jumpPill": {
+        "ariaLabel": "Quay lại bản ghi âm: {{title}}"
+      },
+      "empty": {
+        "title": "Chưa có ghi chú nào",
+        "description": "Tạo ghi chú đầu tiên để bắt đầu lưu trữ ý tưởng của bạn"
+      },
+      "notFound": "Không tìm thấy ghi chú",
+      "backToNotes": "Quay lại danh sách ghi chú",
+      "toast": {
+        "created": "Đã tạo ghi chú",
+        "createFailed": "Không thể tạo ghi chú: {{message}}",
+        "emojiUpdated": "Đã đổi biểu tượng",
+        "emojiUpdateFailed": "Không thể đổi biểu tượng: {{message}}",
+        "organizationUpdateFailed": "Không thể cập nhật ghi chú: {{message}}",
+        "deleted": "Đã xóa ghi chú",
+        "deleteFailed": "Không thể xóa ghi chú: {{message}}",
+        "saveFailed": "Không thể lưu các thay đổi",
+        "upgradedToRichNotes": "Ghi chú của bạn đã được nâng cấp lên định dạng Markdown đầy đủ.",
+        "loadFailed": "Không thể tải ghi chú",
+        "folderDeleted": "Đã xóa thư mục cùng {{noteCount}} ghi chú và {{folderCount}} thư mục con."
+      },
+      "note": {
+        "removeEmoji": "Xóa biểu tượng",
+        "titlePlaceholder": "Tiêu đề ghi chú...",
+        "bodyPlaceholder": "Bắt đầu viết nội dung ghi chú của bạn...",
+        "edited": "Đã sửa {{date}}",
+        "transcription": "Bản phiên âm",
+        "transcriptionMenu": {
+          "trigger": "Tùy chọn phiên âm",
+          "copy": "Sao chép toàn bộ",
+          "copied": "Đã sao chép nội dung phiên âm",
+          "copyFailed": "Không thể sao chép phiên âm",
+          "addToNote": "Chèn vào ghi chú",
+          "added": "Đã thêm vào ghi chú",
+          "addFailed": "Mở ghi chú để chèn nội dung phiên âm",
+          "addBlocked": "Vui lòng giải quyết các thay đổi đang chờ trước khi thêm phiên âm"
+        },
+        "actions": {
+          "minimizeTranscription": "Thu nhỏ bảng phiên âm",
+          "delete": "Xóa",
+          "addToFavorites": "Thêm vào Yêu thích",
+          "removeFromFavorites": "Bỏ khỏi Yêu thích",
+          "moveToFolder": "Di chuyển vào thư mục",
+          "addToFolder": "Thêm vào thư mục",
+          "removeFromFolderNamed": "Xóa khỏi thư mục {{name}}",
+          "folderLabel": "Thư mục",
+          "noFolder": "Không có thư mục",
+          "newFolder": "Thư mục mới...",
+          "newSubfolder": "Thư mục con của \"{{parent}}\"",
+          "newFolderPrompt": "Tên thư mục",
+          "createFolder": "Tạo",
+          "searchFolders": "Tìm kiếm thư mục...",
+          "noFoldersFound": "Không tìm thấy thư mục nào.",
+          "addTags": "Thêm thẻ",
+          "removeTag": "Xóa thẻ",
+          "editTag": "Sửa thẻ",
+          "tagsLabel": "Thẻ",
+          "removeTagNamed": "Xóa thẻ #{{name}}"
+        },
+        "deleteDialog": {
+          "title": "Xóa ghi chú",
+          "description": "Bạn có chắc chắn muốn xóa \"{{title}}\"? Hành động này không thể hoàn tác và ghi chú sẽ bị xóa vĩnh viễn.",
+          "cancel": "Hủy",
+          "deleting": "Đang xóa...",
+          "confirm": "Xóa ghi chú"
+        }
+      },
+      "unfiled": {
+        "label": "Chưa phân loại"
+      },
+      "folder": {
+        "actions": {
+          "rename": "Đổi tên thư mục",
+          "delete": "Xóa thư mục",
+          "addToFavorites": "Thêm vào Yêu thích",
+          "removeFromFavorites": "Bỏ khỏi Yêu thích",
+          "newSubfolder": "Thư mục con mới"
+        },
+        "rename": {
+          "title": "Đổi tên thư mục",
+          "placeholder": "Tên thư mục mới"
+        },
+        "delete": {
+          "title": "Xóa thư mục \"{{name}}\"?",
+          "description": "Thao tác này sẽ xóa vĩnh viễn thư mục cùng {{noteCount}} ghi chú và {{folderCount}} thư mục con bên trong. Không thể hoàn tác.",
+          "confirm": "Xóa thư mục"
+        },
+        "picker": {
+          "placeholder": "Tìm hoặc tạo thư mục mới…",
+          "create": "Tạo thư mục <1>{{name}}</1>"
+        }
+      },
+      "upcomingEvents": {
+        "title": "Sự kiện sắp tới",
+        "takeNotes": "Ghi chép",
+        "empty": "Không có sự kiện sắp tới",
+        "connect": {
+          "title": "Kết nối lịch của bạn",
+          "description": "Kết nối Google Calendar hoặc Outlook để tự động ghi chép cuộc họp",
+          "button": "Kết nối lịch"
+        }
+      }
+    },
+    "vocabulary": {
+      "title": "Từ vựng chuyên ngành",
+      "description": "Thêm thuật ngữ, tên riêng hoặc từ ngữ đặc thù để AI nhận diện chính xác khi ghi chép và phiên âm.",
+      "addButton": "Thêm từ vựng",
+      "loading": "Đang tải danh sách từ vựng...",
+      "empty": "Chưa có từ vựng chuyên ngành nào. Hãy thêm từ đầu tiên để bắt đầu.",
+      "toast": {
+        "added": "Đã thêm từ vựng thành công",
+        "addFailed": "Không thể thêm từ: {{message}}",
+        "updated": "Đã cập nhật từ vựng",
+        "updateFailed": "Không thể cập nhật từ: {{message}}",
+        "deleted": "Đã xóa từ vựng",
+        "deleteFailed": "Không thể xóa từ: {{message}}"
+      },
+      "dialog": {
+        "addTitle": "Thêm từ vựng",
+        "editTitle": "Chỉnh sửa từ vựng",
+        "replacementLabel": "Tự động thay thế từ viết sai",
+        "misspellingPlaceholder": "Từ thường viết sai",
+        "correctSpellingPlaceholder": "Từ đúng chính tả",
+        "newWordPlaceholder": "Nhập từ vựng mới",
+        "cancel": "Hủy",
+        "saving": "Đang lưu...",
+        "addWord": "Thêm từ",
+        "saveChanges": "Lưu thay đổi"
+      },
+      "delete": {
+        "title": "Xóa từ vựng",
+        "description": "Bạn có chắc muốn xóa \"{{item}}\"? Hành động này không thể hoàn tác.",
+        "cancel": "Hủy",
+        "deleting": "Đang xóa...",
+        "confirm": "Xóa"
+      }
+    },
+    "aiModels": {
+      "title": "Mô hình AI",
+      "tabs": {
+        "speech": "Giọng nói",
+        "language": "Ngôn ngữ (LLM)",
+        "embedding": "Nhúng (Embedding)"
+      },
+      "modelTypes": {
+        "speech": "giọng nói",
+        "language": "ngôn ngữ",
+        "embedding": "nhúng"
+      },
+      "defaultModels": {
+        "default": "Mô hình mặc định",
+        "speech": "Mô hình nhận diện giọng nói mặc định",
+        "language": "Mô hình ngôn ngữ mặc định",
+        "embedding": "Mô hình nhúng mặc định"
+      },
+      "defaultModel": {
+        "toast": {
+          "updated": "Đã cập nhật mô hình {{modelType}} mặc định!",
+          "updateFailed": "Không thể cài đặt mô hình {{modelType}} mặc định. Vui lòng thử lại."
+        },
+        "loading": "Đang tải...",
+        "placeholder": "Chọn một mô hình..."
+      },
+      "changeDefaultDialog": {
+        "title": "Đổi mô hình mặc định",
+        "description": "Bạn có chắc muốn đặt \"{{modelName}}\" làm mô hình {{modelType}} mặc định không?",
+        "cancel": "Hủy",
+        "confirm": "Đổi mặc định"
+      },
+      "providers": {
+        "openRouter": "OpenRouter",
+        "ollama": "Ollama",
+        "openAICompatible": "Tương thích OpenAI"
+      },
+      "provider": {
+        "status": {
+          "connected": "Đã kết nối",
+          "disconnected": "Chưa kết nối"
+        },
+        "placeholders": {
+          "openRouter": "Khóa API Key",
+          "ollama": "Đường dẫn Ollama URL (VD: http://localhost:11434)",
+          "openAICompatibleApiKey": "Khóa API Key",
+          "openAICompatibleBaseURL": "Đường dẫn Base URL (VD: https://api.openai.com/v1)"
+        },
+        "buttons": {
+          "connect": "Kết nối",
+          "validating": "Đang kiểm tra...",
+          "syncModels": "Đồng bộ mô hình",
+          "removeProvider": "Xóa kết nối"
+        },
+        "removeDialog": {
+          "title": "Xóa kết nối nhà cung cấp",
+          "description": "Bạn có chắc muốn xóa kết nối {{provider}}? Hành động này sẽ ngắt kết nối và xóa mọi mô hình đã đồng bộ từ nhà cung cấp này.",
+          "cancel": "Hủy",
+          "confirm": "Xóa nhà cung cấp"
+        },
+        "toast": {
+          "configSaved": "Đã lưu cấu hình {{provider}} thành công!",
+          "configSaveFailed": "Không thể lưu cấu hình {{provider}}. Vui lòng thử lại.",
+          "validated": "Kết nối {{provider}} hợp lệ!",
+          "validationFailed": "Kiểm tra {{provider}} thất bại: {{message}}",
+          "validationError": "Lỗi xác thực {{provider}}: {{message}}",
+          "removed": "Đã xóa nhà cung cấp {{provider}}!",
+          "removeFailed": "Không thể xóa nhà cung cấp {{provider}}. Vui lòng thử lại."
+        },
+        "validationFailed": "Xác thực thất bại"
+      },
+      "syncedModels": {
+        "title": "Mô hình đã đồng bộ",
+        "toast": {
+          "removed": "Đã xóa mô hình thành công!",
+          "removeFailed": "Không thể xóa mô hình. Vui lòng thử lại.",
+          "defaultLanguageUpdated": "Đã cập nhật mô hình ngôn ngữ mặc định!",
+          "defaultLanguageFailed": "Không thể cập nhật mô hình ngôn ngữ mặc định.",
+          "defaultEmbeddingUpdated": "Đã cập nhật mô hình nhúng mặc định!",
+          "defaultEmbeddingFailed": "Không thể cập nhật mô hình nhúng mặc định."
+        },
+        "errorDefaultRemove": "Vui lòng chọn mô hình khác làm mặc định trước khi xóa mô hình này.",
+        "empty": {
+          "title": "Chưa có mô hình nào được đồng bộ.",
+          "description": "Kết nối với nhà cung cấp và bấm Đồng bộ mô hình để xem tại đây."
+        },
+        "table": {
+          "name": "Tên mô hình",
+          "provider": "Nhà cung cấp",
+          "size": "Kích thước",
+          "context": "Ngữ cảnh",
+          "actions": "Thao tác",
+          "unknown": "Không xác định",
+          "currentDefault": "Mô hình mặc định hiện tại",
+          "setDefault": "Đặt làm mặc định",
+          "remove": "Xóa mô hình"
+        },
+        "deleteDialog": {
+          "title": "Xác nhận xóa",
+          "description": "Bạn có chắc muốn xóa \"{{modelName}}\" khỏi danh sách mô hình đã đồng bộ không?",
+          "cancel": "Hủy",
+          "confirm": "Xóa mô hình"
+        },
+        "errorDialog": {
+          "title": "Không thể xóa mô hình",
+          "confirm": "Đồng ý"
+        }
+      },
+      "syncDialog": {
+        "title": "Chọn mô hình {{provider}} {{modelType}}",
+        "description": "Chọn các mô hình {{modelType}} bạn muốn đồng bộ từ {{provider}}.",
+        "fetching": "Đang tải danh sách {{available}}mô hình...",
+        "available": "khả dụng ",
+        "fetchFailed": "Không thể tải danh sách mô hình",
+        "fetchFailedWithMessage": "Không thể tải mô hình: {{message}}",
+        "searchPlaceholder": "Tìm kiếm mô hình...",
+        "clear": "Xóa tìm kiếm",
+        "size": "Kích thước: {{size}}",
+        "context": "Ngữ cảnh: {{context}}",
+        "cancel": "Hủy",
+        "syncing": "Đang đồng bộ...",
+        "syncButton": "Đồng bộ {{count}} mô hình",
+        "syncButton_other": "Đồng bộ {{count}} mô hình",
+        "toast": {
+          "synced": "Đã đồng bộ mô hình vào cơ sở dữ liệu thành công!",
+          "syncFailed": "Không thể đồng bộ mô hình. Vui lòng thử lại."
+        }
+      },
+      "speech": {
+        "loading": "Đang tải danh sách mô hình...",
+        "availableModels": "Mô hình khả dụng",
+        "table": {
+          "model": "Mô hình",
+          "features": "Tính năng",
+          "speed": "Tốc độ",
+          "accuracy": "Độ chính xác"
+        },
+        "providerIconAlt": "Biểu tượng {{provider}}",
+        "actions": {
+          "downloadTitle": "Bấm để tải về",
+          "cancelDownloadTitle": "Bấm để hủy tải về",
+          "cancelDownloadAria": "Hủy tải về {{modelName}}",
+          "deleteTitle": "Bấm để xóa mô hình",
+          "deleteAria": "Xóa {{modelName}}"
+        },
+        "deleteDialog": {
+          "title": "Xóa mô hình",
+          "description": "Bạn có chắc muốn xóa mô hình này? Bạn sẽ cần tải lại nếu muốn sử dụng sau này.",
+          "cancel": "Hủy",
+          "confirm": "Xóa"
+        },
+        "loginDialog": {
+          "title": "Yêu cầu đăng nhập",
+          "description": "Để sử dụng phiên âm đám mây V-Note Cloud, vui lòng đăng nhập tài khoản của bạn.",
+          "browserNotice": "Sau khi nhấn \"Đăng nhập\", bạn sẽ được chuyển đến trình duyệt để hoàn tất.",
+          "cloudBenefit": "Phiên âm đám mây nhanh chóng và chính xác cao",
+          "cancel": "Hủy",
+          "openingBrowser": "Đang mở trình duyệt...",
+          "signIn": "Đăng nhập"
+        },
+        "toast": {
+          "downloadStartFailed": "Không thể bắt đầu tải về",
+          "downloadCancelFailed": "Không thể hủy tải về",
+          "deleteFailed": "Không thể xóa mô hình",
+          "selectFailed": "Không thể chọn mô hình",
+          "loginInBrowser": "Vui lòng hoàn tất đăng nhập trong trình duyệt của bạn",
+          "loginStartFailed": "Không thể bắt đầu quy trình đăng nhập",
+          "downloadFailed": "Tải về thất bại: {{message}}",
+          "loginSuccess": "Đăng nhập thành công!"
+        }
+      }
+    }
+  },
+  "common": {
+    "loading": "Đang tải..."
+  },
+  "skills": {
+    "page": {
+      "title": "Kỹ năng AI",
+      "newSkill": "Kỹ năng mới",
+      "installedSection": "Đã cài đặt",
+      "empty": "Chưa có kỹ năng nào được cài đặt."
+    },
+    "form": {
+      "name": "Tên kỹ năng",
+      "slug": "Mã định danh (Slug)",
+      "description": "Mô tả",
+      "mode": "Chế độ",
+      "surfaces": "Vị trí áp dụng",
+      "body": "Nội dung câu lệnh (Prompt)",
+      "create": "Tạo mới",
+      "save": "Lưu thay đổi",
+      "cancel": "Hủy"
+    },
+    "row": {
+      "enableAriaLabel": "Bật {{name}}"
+    }
+  },
+  "floatingControls": {
+    "startRecording": "Bắt đầu ghi âm",
+    "stopRecording": "Dừng ghi âm",
+    "enhance": "Tối ưu với AI",
+    "openTranscription": "Mở bảng phiên âm",
+    "closeTranscription": "Đóng bảng phiên âm"
+  },
+  "time": {
+    "justNow": "vừa xong",
+    "minuteAgo": "{{count}} phút trước",
+    "minutesAgo": "{{count}} phút trước",
+    "hourAgo": "{{count}} giờ trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "dayAgo": "{{count}} ngày trước",
+    "daysAgo": "{{count}} ngày trước"
+  }
+}

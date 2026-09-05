@@ -32,9 +32,69 @@ export interface DownloadProgress {
   abortController?: AbortController;
 }
 
-export interface ModelManagerState {
-  activeDownloads: Map<string, DownloadProgress>;
+export interface AvailablePhoVoiceModel {
+  id: string;
+  name: string;
+  description: string;
+  size: number;
+  sizeFormatted: string;
+  setup: "offline";
+  provider: "PhoVoice (Local)";
+  files: {
+    url: string;
+    filename: string;
+    subfolder: string;
+  }[];
 }
+
+export const AVAILABLE_PHOVOICE_MODELS: AvailablePhoVoiceModel[] = [
+  {
+    id: "phovoice-vietnamese-standard",
+    name: "PhoVoice Tiếng Việt Siêu Nhẹ (Offline Standard)",
+    description: "Bộ mô hình chuẩn 150MB gồm Zipformer ASR, Silero VAD, CAM++ Diarization & ViBERT-Capu.",
+    size: 150 * 1024 * 1024,
+    sizeFormatted: "~150 MB",
+    setup: "offline",
+    provider: "PhoVoice (Local)",
+    files: [
+      {
+        url: "https://huggingface.co/welcomyou/vibert-capu-onnx/resolve/main/vibert-capu.int8.onnx",
+        filename: "vibert-capu.int8.onnx",
+        subfolder: "vibert-capu",
+      },
+      {
+        url: "https://huggingface.co/welcomyou/vibert-capu-onnx/resolve/main/vocab.txt",
+        filename: "vocab.txt",
+        subfolder: "vibert-capu",
+      },
+      {
+        url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx",
+        filename: "silero_vad.onnx",
+        subfolder: "silero-vad",
+      },
+      {
+        url: "https://huggingface.co/hynt/Zipformer-30M-RNNT-Streaming-6000h/resolve/main/encoder-epoch-31-avg-11-chunk-64-left-128.fp16.onnx",
+        filename: "encoder-epoch-31-avg-11-chunk-64-left-128.fp16.onnx",
+        subfolder: "zipformer-30m-rnnt-streaming-6000h",
+      },
+      {
+        url: "https://huggingface.co/hynt/Zipformer-30M-RNNT-Streaming-6000h/resolve/main/decoder-epoch-31-avg-11-chunk-64-left-128.fp16.onnx",
+        filename: "decoder-epoch-31-avg-11-chunk-64-left-128.fp16.onnx",
+        subfolder: "zipformer-30m-rnnt-streaming-6000h",
+      },
+      {
+        url: "https://huggingface.co/hynt/Zipformer-30M-RNNT-Streaming-6000h/resolve/main/joiner-epoch-31-avg-11-chunk-64-left-128.fp16.onnx",
+        filename: "joiner-epoch-31-avg-11-chunk-64-left-128.fp16.onnx",
+        subfolder: "zipformer-30m-rnnt-streaming-6000h",
+      },
+      {
+        url: "https://huggingface.co/hynt/Zipformer-30M-RNNT-Streaming-6000h/resolve/main/tokens.txt",
+        filename: "tokens.txt",
+        subfolder: "zipformer-30m-rnnt-streaming-6000h",
+      },
+    ],
+  },
+];
 
 // Available Whisper models manifest
 // export const AVAILABLE_MODELS: AvailableWhisperModel[] = [
@@ -117,6 +177,39 @@ export interface ModelManagerState {
 // ];
 
 export const AVAILABLE_MODELS: AvailableWhisperModel[] = [
+  {
+    id: "phovoice-vietnamese-standard",
+    name: "PhoVoice AI (100% Local)",
+    type: "other",
+    description:
+      "Mô hình nhận diện tiếng Việt chuyên sâu, xử lý siêu nhanh và chạy 100% offline.",
+    checksum: "phovoice-standard-model-bundle",
+    filename: "phovoice",
+    downloadUrl:
+      "https://huggingface.co/welcomyou/vibert-capu-onnx/resolve/main/vibert-capu.int8.onnx",
+    size: 150 * 1024 * 1024,
+    sizeFormatted: "~150 MB",
+    modelSize: "~150 MB",
+    features: [
+      {
+        icon: "zap",
+        tooltip: "Tốc độ nhận diện thời gian thực siêu nhanh (Streaming ASR)",
+      },
+      {
+        icon: "languages",
+        tooltip: "Tối ưu phương ngữ & dấu tiếng Việt",
+      },
+      {
+        icon: "shield",
+        tooltip: "Bảo mật riêng tư 100% offline trên máy",
+      },
+    ],
+    speed: 5.0,
+    accuracy: 4.8,
+    setup: "offline",
+    provider: "PhoVoice (Local)",
+    providerIcon: "/icons/models/phovoice.svg",
+  },
   {
     id: "whisper-tiny",
     name: "Whisper Tiny",

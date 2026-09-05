@@ -9,7 +9,7 @@
 
 const pending = new Set<number>();
 
-export const TRANSCRIPTION_OPEN_EVENT = "prismical:open-transcription";
+export const TRANSCRIPTION_OPEN_EVENT = "v-note:open-transcription";
 
 export function requestOpenTranscription(noteId: number): void {
   pending.add(noteId);

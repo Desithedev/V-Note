@@ -263,4 +263,89 @@ export const notesRouter = createRouter({
       return { markdown: note.content ?? "", title: note.title };
     }),
 
+  // Hỏi đáp thông minh với LLM dựa trên nội dung ghi chú & bản phiên âm
+  askAi: procedure
+    .input(
+      z.object({
+        noteId: z.number().int().positive(),
+        question: z.string().min(1),
+        history: z
+          .array(
+            z.object({
+              role: z.enum(["user", "assistant"]),
+              content: z.string(),
+            }),
+          )
+          .optional()
+          .default([]),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const note = await notesService.getNote(input.noteId);
+      const { getNoteTranscript } = await import("@/db/meetings");
+      const transcript = await getNoteTranscript(input.noteId);
+      const transcriptText = transcript
+        .map(
+          (t) =>
+            `[${t.speaker === "you" ? "Bạn (Mic)" : (t.speakerLabel || "Người 1")}]: ${t.text}`,
+        )
+        .join("\n");
+
+      const { getSettingsSection } = await import("@/db/app-settings");
+      const modelDefaults = await getSettingsSection("modelDefaults");
+      const modelSelection =
+        modelDefaults?.formatting || modelDefaults?.summarization;
+
+      const systemPrompt =
+        `Bạn là trợ lý AI phân tích thông minh trong ứng dụng V-Note. Nhiệm vụ của bạn là giải đáp mọi câu hỏi của người dùng dựa trên nội dung ghi chú và bản phiên âm cuộc trò chuyện/cuộc họp dưới đây.\n\n` +
+        `--- BẮT ĐẦU DỮ LIỆU CUỘC HỌP ---\n` +
+        `Tiêu đề: ${note?.title || "Không có"}\n\n` +
+        `Nội dung ghi chú hiện tại:\n${note?.content || "(Chưa có nội dung)"}\n\n` +
+        `Toàn bộ bản phiên âm cuộc trò chuyện:\n${transcriptText || "(Chưa có phiên âm)"}\n` +
+        `--- KẾT THÚC DỮ LIỆU CUỘC HỌP ---\n\n` +
+        `Yêu cầu:\n` +
+        `1. Trả lời bằng tiếng Việt tự nhiên, trực quan, chính xác theo thông tin đã diễn ra.\n` +
+        `2. Sử dụng định dạng Markdown (gạch đầu dòng, in đậm từ khóa) để trình bày đẹp mắt, dễ đọc.\n` +
+        `3. Nếu thông tin không có trong cuộc trò chuyện, hãy thông báo ngắn gọn và gợi ý liên quan.`;
+
+      if (modelSelection) {
+        try {
+          const { getRegistry, registryKey } = await import(
+            "@/services/ai/registry"
+          );
+          const { generateText } = await import("ai");
+          const registry = await getRegistry();
+          const model = registry.languageModel(
+            registryKey(modelSelection.instanceId, modelSelection.modelId),
+          );
+
+          const messages = [
+            ...input.history.map((h) => ({
+              role: h.role as "user" | "assistant",
+              content: h.content,
+            })),
+            { role: "user" as const, content: input.question },
+          ];
+
+          const result = await generateText({
+            model,
+            system: systemPrompt,
+            messages,
+          });
+
+          return { answer: result.text };
+        } catch (err: any) {
+          const { logger } = await import("@/main/logger");
+          logger.ai?.error("LLM Q&A error:", err);
+          return {
+            answer: `Đã xảy ra lỗi khi kết nối tới mô hình AI: ${err?.message || String(err)}. Vui lòng kiểm tra lại cấu hình API Key trong phần Cài đặt.`,
+          };
+        }
+      }
+
+      return {
+        answer:
+          `Chưa tìm thấy mô hình AI mặc định. Bạn hãy vào mục **Cài đặt → AI Models** để kích hoạt API Key (OpenAI, Anthropic, OpenRouter, Groq...) để trò chuyện với LLM nhé!`,
+      };
+    }),
 });

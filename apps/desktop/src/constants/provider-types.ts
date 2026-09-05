@@ -22,6 +22,7 @@ export const PROVIDER_TYPES = {
   ollama: "ollama",
   openAICompatible: "openai-compatible",
   localWhisper: "local-whisper",
+  phovoice: "phovoice",
   mock: "mock",
   // Coming-soon placeholders. Surfaced in the Available tiles
   // (disabled, with a "Coming soon" tooltip) so users can see
@@ -46,6 +47,7 @@ export const PROVIDER_TYPE_LABELS: Record<ProviderType, string> = {
   [PROVIDER_TYPES.ollama]: "Ollama",
   [PROVIDER_TYPES.openAICompatible]: "OpenAI Compatible",
   [PROVIDER_TYPES.localWhisper]: "Whisper (local)",
+  [PROVIDER_TYPES.phovoice]: "PhoVoice ASR (Cloud / Local)",
   [PROVIDER_TYPES.mock]: "Mock",
   [PROVIDER_TYPES.googleGemini]: "Google Gemini",
   [PROVIDER_TYPES.vercelAIGateway]: "Vercel AI Gateway",
@@ -66,6 +68,7 @@ export const PROVIDER_TYPE_COMING_SOON: Record<ProviderType, boolean> = {
   [PROVIDER_TYPES.ollama]: false,
   [PROVIDER_TYPES.openAICompatible]: false,
   [PROVIDER_TYPES.localWhisper]: false,
+  [PROVIDER_TYPES.phovoice]: false,
   [PROVIDER_TYPES.mock]: false,
   [PROVIDER_TYPES.googleGemini]: true,
   [PROVIDER_TYPES.vercelAIGateway]: true,
@@ -84,6 +87,7 @@ export const PROVIDER_TYPE_MULTI_INSTANCE: Record<ProviderType, boolean> = {
   [PROVIDER_TYPES.ollama]: true,
   [PROVIDER_TYPES.openAICompatible]: true,
   [PROVIDER_TYPES.localWhisper]: false,
+  [PROVIDER_TYPES.phovoice]: true,
   [PROVIDER_TYPES.mock]: false,
   // Coming-soon — tentative; revisit when implementing.
   [PROVIDER_TYPES.googleGemini]: true,
@@ -100,6 +104,7 @@ export const SINGLETON_INSTANCE_IDS: Readonly<
 > = {
   [PROVIDER_TYPES.localWhisper]: "system-local-whisper",
   [PROVIDER_TYPES.mock]: "system-mock",
+  [PROVIDER_TYPES.phovoice]: "system-phovoice",
 };
 
 // Form-field spec for the Add/Edit Instance dialog. Order of entries
@@ -149,6 +154,10 @@ export const PROVIDER_TYPE_CONFIG_FIELDS: Record<
       advanced: true,
     },
   ],
+  [PROVIDER_TYPES.phovoice]: [
+    { field: "baseURL", inputType: "text", required: true },
+    { field: "apiKey", inputType: "password", required: false },
+  ],
   [PROVIDER_TYPES.localWhisper]: [],
   [PROVIDER_TYPES.mock]: [],
   // Coming-soon types have no form (the tile is disabled, no dialog
@@ -178,6 +187,7 @@ export const PROVIDER_TYPE_CAPABILITIES: Record<ProviderType, ModelType[]> = {
   [PROVIDER_TYPES.ollama]: ["language", "embedding"],
   [PROVIDER_TYPES.openAICompatible]: ["language", "embedding"],
   [PROVIDER_TYPES.localWhisper]: ["transcription"],
+  [PROVIDER_TYPES.phovoice]: ["transcription"],
   [PROVIDER_TYPES.mock]: ["transcription", "language", "embedding"],
   // Coming-soon — empty until each is wired. Picker filters by this
   // map, so leaving them empty also keeps stray instances out.

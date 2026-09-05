@@ -1,4 +1,5 @@
 import { observable } from "@trpc/server/observable";
+import { z } from "zod";
 import { createRouter, procedure } from "../trpc";
 import type { MeetingWidgetState } from "@/types/meeting-widget";
 
@@ -51,6 +52,13 @@ export const meetingWidgetRouter = createRouter({
     );
     return await meetingStartNotificationManager.startNoteFromIdle();
   }),
+
+  startRecordingForNote: procedure
+    .input(z.object({ noteId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const meetingManager = ctx.serviceManager.getService("meetingManager");
+      return await meetingManager.start(input.noteId, "dual");
+    }),
 
   createBlankNote: procedure.mutation(async ({ ctx }) => {
     const meetingStartNotificationManager = ctx.serviceManager.getService(

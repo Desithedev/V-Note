@@ -15,6 +15,7 @@ import {
 } from "../../components/settings-header-actions-context";
 import { CreateNoteProvider } from "../../components/create-note-context";
 import { HeaderCreateNoteButton } from "../../components/header-create-note-button";
+import { HeaderImportAudioButton } from "../../components/header-import-audio-button";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -170,6 +171,7 @@ function AppLayoutContent() {
                 actions={
                   <>
                     {headerActions}
+                    <HeaderImportAudioButton />
                     <HeaderCreateNoteButton />
                   </>
                 }

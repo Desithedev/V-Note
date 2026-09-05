@@ -4,6 +4,8 @@ import { IconNotes } from "@tabler/icons-react";
 import type { MeetingWidgetEdge } from "@/types/meeting-widget";
 import { IconButton } from "./icon-button";
 import { DragHandle } from "./drag-handle";
+import { api } from "@/trpc/react";
+import { useState } from "react";
 
 export const PILL_SHELL_CLASS =
   "relative pointer-events-auto bg-black/80 dark:bg-black/70 backdrop-blur-md ring-[1px] ring-black/60 shadow-[0px_0px_15px_0px_rgba(0,0,0,0.40)] before:content-[''] before:absolute before:inset-[1px] before:outline before:outline-white/15 before:pointer-events-none";
@@ -14,6 +16,7 @@ export interface IdlePillProps {
   onTakeNotes: () => void;
   takingNotes: boolean;
   onStartRecording: () => void;
+  onStartRecordingForNote: (noteId: number) => void;
   startingRecording: boolean;
   showHandle: boolean;
   onDragStart: (event: React.PointerEvent<HTMLButtonElement>) => void;
@@ -46,10 +49,13 @@ export function IdlePill({
   onTakeNotes,
   takingNotes,
   onStartRecording,
+  onStartRecordingForNote,
   startingRecording,
   showHandle,
   onDragStart,
 }: IdlePillProps) {
+  const notesQuery = api.notes.getNotes.useQuery({ limit: 20, offset: 0, sortBy: "updatedAt", sortOrder: "desc" });
+  const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const isVertical = edge === "right";
   const tooltipSide = isVertical ? "left" : "top";
 
@@ -165,7 +171,7 @@ export function IdlePill({
           <IconButton
             tooltip="Start Recording"
             icon={<Mic className="h-[18px] w-[18px]" />}
-            onClick={onStartRecording}
+            onClick={() => selectedNoteId ? onStartRecordingForNote(selectedNoteId) : onStartRecording()}
             disabled={startingRecording}
             tooltipSide={tooltipSide}
           />
@@ -195,6 +201,15 @@ export function IdlePill({
           </motion.div>
         ) : null}
       </AnimatePresence>
+      {hovered ? (
+        <select aria-label="Chọn note để ghi âm" value={selectedNoteId ?? ""}
+          onChange={(event) => setSelectedNoteId(event.target.value ? Number(event.target.value) : null)}
+          className="absolute z-10 w-44 rounded-md border border-white/15 bg-zinc-900 px-2 py-1 text-[10px] text-white outline-none"
+          style={isVertical ? { right: 48, top: "50%", transform: "translateY(-50%)" } : { right: 48, top: -34 }}>
+          <option value="">Tạo note mới</option>
+          {(notesQuery.data ?? []).map((note) => <option key={note.id} value={note.id}>{note.title}</option>)}
+        </select>
+      ) : null}
 
       {/* Drag handle — opposite side of Take Notes, follows hover state. */}
       <div className="absolute" style={handleStyle}>

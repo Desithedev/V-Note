@@ -108,11 +108,17 @@ export class MeetingStartNotificationManager extends EventEmitter {
     this.settings =
       await this.deps.settingsService.getMeetingNotificationSettings();
     this.attachListeners();
-    await this.detectorClient.start();
-    this.state.detectorState = "running";
-    this.state.lastError = null;
-    this.emit("state-changed");
-    logger.info("Meeting start notification manager started");
+    try {
+      await this.detectorClient.start();
+      this.state.detectorState = "running";
+      this.state.lastError = null;
+      this.emit("state-changed");
+      logger.info("Meeting start notification manager started");
+    } catch (err) {
+      logger.warn("Native mic detector unavailable, continuing without background meeting auto-detect:", err);
+      this.state.detectorState = "idle";
+      this.emit("state-changed");
+    }
   }
 
   async cleanup(): Promise<void> {
@@ -280,6 +286,8 @@ export class MeetingStartNotificationManager extends EventEmitter {
         suppressed: false,
         notificationShown: false,
       });
+
+      this.deps.meetingManager.preloadWhisperForMeeting().catch(() => {});
     }
 
     for (const [bundleId] of this.activeBundleStates) {

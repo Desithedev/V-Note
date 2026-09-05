@@ -1,23 +1,27 @@
 import { app, globalShortcut } from "electron";
 import type { SettingsService } from "@/services/settings-service";
 import type { WindowManager } from "../core/window-manager";
+import type { MeetingManager } from "./meeting-manager";
+import { createNote } from "@/db/notes";
 import { logger } from "../logger";
 import { keycodesToAccelerator } from "@/utils/keycodes-to-accelerator";
 
 const log = logger.main;
 
 /**
- * Registers the user-configured "open Prismical" shortcut via Electron's
- * globalShortcut module. Unlike the recording/dictation shortcuts, this
- * does not need the native helper bridge — a plain accelerator is enough
- * to bring the main window forward.
+ * Registers global shortcuts via Electron's globalShortcut module:
+ * 1. "Open V-Note": Brings main app window forward or toggles it.
+ * 2. "Quick Record New Note": Automatically creates a new note, starts dual recording,
+ *    and displays the floating popup pill widget on top across all apps (Zen Browser, YouTube, etc.).
  */
 export class OpenAppShortcutManager {
   private registeredAccelerator: string | null = null;
+  private registeredRecordingAccelerators: string[] = [];
 
   constructor(
     private settingsService: SettingsService,
     private windowManager: WindowManager,
+    private meetingManager?: MeetingManager | null,
   ) {}
 
   async initialize(): Promise<void> {
@@ -29,51 +33,116 @@ export class OpenAppShortcutManager {
     this.unregister();
 
     const shortcuts = await this.settingsService.getShortcuts();
+
+    // 1. Register "Open App" Shortcut
     const keys = shortcuts.openApp;
-    if (!keys || keys.length === 0) return;
+    if (keys && keys.length > 0) {
+      const accelerator = keycodesToAccelerator(keys);
+      if (accelerator) {
+        const ok = globalShortcut.register(accelerator, () => {
+          this.toggleMainWindow().catch((err) =>
+            log.error("Failed to toggle main window from shortcut", { err }),
+          );
+        });
 
-    const accelerator = keycodesToAccelerator(keys);
-    if (!accelerator) {
-      log.warn("openApp shortcut has unsupported key combination", { keys });
+        if (ok) {
+          this.registeredAccelerator = accelerator;
+          log.info("openApp shortcut registered", { accelerator });
+        } else {
+          log.warn("openApp shortcut could not be registered (already in use)", {
+            accelerator,
+          });
+        }
+      }
+    }
+
+    // 2. Register "Quick Record New Note & Show Floating Widget" Shortcuts
+    const recKeys = shortcuts.toggleRecording;
+    const configuredRec =
+      recKeys && recKeys.length > 0
+        ? keycodesToAccelerator(recKeys)
+        : null;
+
+    const candidates = [
+      configuredRec,
+      "CommandOrControl+Alt+R",
+      "CommandOrControl+Shift+R",
+      "F9",
+    ].filter(Boolean) as string[];
+
+    this.registeredRecordingAccelerators = [];
+    for (const acc of candidates) {
+      try {
+        if (!globalShortcut.isRegistered(acc)) {
+          const recOk = globalShortcut.register(acc, () => {
+            this.toggleQuickRecordingNote().catch((err) =>
+              log.error("Failed to toggle quick recording note from shortcut", {
+                err,
+              }),
+            );
+          });
+
+          if (recOk) {
+            this.registeredRecordingAccelerators.push(acc);
+            log.info(`[QuickRecord] Shortcut registered: ${acc}`);
+          }
+        }
+      } catch (err) {
+        log.warn(`Could not register shortcut ${acc}: ${err}`);
+      }
+    }
+  }
+
+  /**
+   * Toggle quick recording:
+   * - If currently recording -> Stop recording.
+   * - If idle -> Create a new note with timestamp title, start dual audio capture,
+   *   and show the floating popup pill widget on top across all apps.
+   */
+  private async toggleQuickRecordingNote(): Promise<void> {
+    if (!this.meetingManager) {
+      log.warn("Cannot toggle quick recording: meetingManager not attached");
       return;
     }
 
-    const ok = globalShortcut.register(accelerator, () => {
-      this.toggleMainWindow().catch((err) =>
-        log.error("Failed to toggle main window from shortcut", { err }),
-      );
-    });
-
-    if (!ok) {
-      log.warn("openApp shortcut could not be registered (already in use)", {
-        accelerator,
-      });
+    const state = this.meetingManager.getState();
+    if (state.state === "recording" || state.state === "starting") {
+      log.info("[QuickRecord] Stopping recording from global shortcut");
+      await this.meetingManager.stop();
       return;
     }
 
-    this.registeredAccelerator = accelerator;
-    log.info("openApp shortcut registered", { accelerator });
+    log.info("[QuickRecord] Creating new note & starting recording from global shortcut");
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.getMonth() + 1;
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const title = `Ghi chú - ${day} thg ${month} (${hours}:${minutes})`;
+
+    try {
+      const newNote = await createNote({ title });
+      if (newNote) {
+        await this.meetingManager.start(newNote.id, "dual");
+        // The widget manager handles showing the window in response to
+        // the meeting state change, so no direct windowManager call is
+        // needed here. Calling it directly would bypass popup bounds
+        // tracking and could show the widget at the wrong size.
+        log.info(`[QuickRecord] Note #${newNote.id} created and recording started with floating popup`);
+      }
+    } catch (err) {
+      log.error("[QuickRecord] Failed to start quick recording session", { err });
+    }
   }
 
   /**
    * Temporarily unregister the global shortcut so the user can rebind it
-   * from the Shortcuts settings page — otherwise the OS consumes the key
-   * combo before the renderer's recording input can see it.
+   * from the Shortcuts settings page.
    */
   suspend(): void {
     this.unregister();
   }
 
-  /**
-   * Show the main window if it's hidden/unfocused, or dismiss it if it's
-   * currently the focused, visible foreground window. Creates the window
-   * if it doesn't exist yet (e.g. the user closed it on macOS).
-   *
-   * Dismissal uses platform-appropriate primitives so the user can return
-   * via Cmd+Tab / Alt+Tab:
-   *   - macOS: app.hide() — system auto-restores windows on re-activation.
-   *   - Win/Linux: window.minimize() — app stays in the task switcher.
-   */
   private async toggleMainWindow(): Promise<void> {
     const mainWindow = this.windowManager.getMainWindow();
 
@@ -109,8 +178,17 @@ export class OpenAppShortcutManager {
   }
 
   private unregister(): void {
-    if (!this.registeredAccelerator) return;
-    globalShortcut.unregister(this.registeredAccelerator);
-    this.registeredAccelerator = null;
+    if (this.registeredAccelerator) {
+      globalShortcut.unregister(this.registeredAccelerator);
+      this.registeredAccelerator = null;
+    }
+    if (this.registeredRecordingAccelerators && this.registeredRecordingAccelerators.length > 0) {
+      for (const acc of this.registeredRecordingAccelerators) {
+        try {
+          globalShortcut.unregister(acc);
+        } catch {}
+      }
+      this.registeredRecordingAccelerators = [];
+    }
   }
 }

@@ -63,7 +63,7 @@ export function SiteHeader({
               <div className="min-w-0 flex-1">{currentView}</div>
             ) : (
               <h1 className="text-sm font-medium">
-                {typeof currentView === "string" ? currentView : "Prismical"}
+                {typeof currentView === "string" ? currentView : "V-Note"}
               </h1>
             )}
           </div>

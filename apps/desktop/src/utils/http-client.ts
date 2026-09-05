@@ -3,8 +3,8 @@ import { getPlatformDisplayName } from "./platform";
 
 /**
  * Get the User-Agent string for HTTP requests
- * Format: prismical-desktop/{version} ({platform})
- * Example: prismical-desktop/0.1.3 (macOS)
+ * Format: v-note-desktop/{version} ({platform})
+ * Example: v-note-desktop/0.1.3 (macOS)
  *
  * Falls back to a static "live-test" version when Electron's `app` is
  * unavailable (i.e. running under `tsx` from a script — see
@@ -17,5 +17,5 @@ export function getUserAgent(): string {
       ? app.getVersion()
       : "live-test";
   const platform = getPlatformDisplayName();
-  return `prismical-desktop/${version} (${platform})`;
+  return `v-note-desktop/${version} (${platform})`;
 }

@@ -59,14 +59,17 @@ export const ArtifactInlineNode = Node.create({
   },
 
   parseHTML() {
-    return [{ tag: "span.prismical-artifact-inline" }];
+    return [
+      { tag: "span.vnote-artifact-inline" },
+      { tag: "span.prismical-artifact-inline" },
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
     return [
       "span",
       mergeAttributes(HTMLAttributes, {
-        class: "prismical-artifact-inline",
+        class: "vnote-artifact-inline prismical-artifact-inline",
       }),
       0,
     ];

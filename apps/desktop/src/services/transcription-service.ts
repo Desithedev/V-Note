@@ -6,6 +6,7 @@ import {
 } from "../pipeline/core/pipeline-types";
 import { createDefaultContext } from "../pipeline/core/context";
 import { WhisperProvider } from "../pipeline/providers/transcription/whisper-provider";
+import { PhoVoiceProvider } from "../pipeline/providers/transcription/phovoice-provider";
 import { ModelService } from "../services/model-service";
 import { SettingsService } from "../services/settings-service";
 import { TelemetryService } from "../services/telemetry-service";
@@ -17,6 +18,9 @@ import {
   updateTranscription,
 } from "../db/transcriptions";
 import { getVocabulary } from "../db/vocabulary";
+import { getInstanceById, getInstancesByProvider } from "../db/instances";
+import { PROVIDER_TYPES } from "../constants/provider-types";
+import type { PhoVoiceConfig } from "../db/schema";
 import { logger } from "../main/logger";
 import { v4 as uuid } from "uuid";
 import { Mutex } from "async-mutex";
@@ -30,6 +34,7 @@ import * as fs from "node:fs";
  */
 export class TranscriptionService {
   private whisperProvider: WhisperProvider;
+  private phovoiceProvider: PhoVoiceProvider | null = null;
   private currentProvider: TranscriptionProvider | null = null;
   private streamingSessions = new Map<string, StreamingSession>();
   private settingsService: SettingsService;
@@ -58,11 +63,83 @@ export class TranscriptionService {
    * Select the appropriate transcription provider based on the selected model
    */
   private async selectProvider(): Promise<TranscriptionProvider> {
+    try {
+      const allSettings = await this.settingsService.getAllSettings();
+      const transcriptionDefault = allSettings.modelDefaults?.transcription;
+
+      if (transcriptionDefault && transcriptionDefault.instanceId) {
+        const instance = await getInstanceById(transcriptionDefault.instanceId);
+        if (instance && instance.provider === PROVIDER_TYPES.phovoice) {
+          const config = instance.config as PhoVoiceConfig;
+          if (!this.phovoiceProvider) {
+            this.phovoiceProvider = new PhoVoiceProvider({
+              baseURL: config.baseURL,
+              apiKey: config.apiKey,
+              mode: config.mode,
+              model: transcriptionDefault.modelId || "68M",
+            });
+          } else {
+            this.phovoiceProvider.updateOptions({
+              baseURL: config.baseURL,
+              apiKey: config.apiKey,
+              mode: config.mode,
+              model: transcriptionDefault.modelId || "68M",
+            });
+          }
+          // Do not route recordings into a stopped local engine. Falling back
+          // to Whisper keeps dictation usable and lets the caller show the
+          // actionable “download a model/start engine” state instead of
+          // silently producing an empty transcript.
+          if ((config.mode === "local" || config.baseURL?.includes("127.0.0.1") || config.baseURL?.includes("localhost")) && !(await this.phovoiceProvider.isAvailable())) {
+            logger.transcription.warn("Local PhoVoice is unavailable; falling back to Whisper");
+          } else {
+            this.currentProvider = this.phovoiceProvider;
+            return this.phovoiceProvider;
+          }
+        }
+      }
+
+      // Check if any PhoVoice instance is configured in DB
+      const phovoiceInstances = await getInstancesByProvider(PROVIDER_TYPES.phovoice);
+      if (phovoiceInstances.length > 0) {
+        const instance = phovoiceInstances[0];
+        const config = instance.config as PhoVoiceConfig;
+        if (!this.phovoiceProvider) {
+          this.phovoiceProvider = new PhoVoiceProvider({
+            baseURL: config.baseURL || "http://127.0.0.1:8000",
+            apiKey: config.apiKey || "",
+            mode: config.mode || "local",
+            model: "68M",
+          });
+        }
+        if (!(await this.phovoiceProvider.isAvailable())) {
+          logger.transcription.warn("Configured PhoVoice instance is unavailable; falling back to Whisper");
+        } else {
+          this.currentProvider = this.phovoiceProvider;
+          return this.phovoiceProvider;
+        }
+      }
+    } catch (e) {
+      logger.transcription.warn(
+        "[TranscriptionService] Error selecting configured provider, using Whisper:",
+        e,
+      );
+    }
     this.currentProvider = this.whisperProvider;
     return this.whisperProvider;
   }
 
   async initialize(): Promise<void> {
+    try {
+      const provider = await this.selectProvider();
+      if (provider === this.phovoiceProvider) {
+        logger.transcription.info("PhoVoice transcription provider active.");
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
     const transcriptionSettings =
       await this.settingsService.getTranscriptionSettings();
     const shouldPreload = transcriptionSettings?.preloadWhisperModel !== false;
@@ -74,24 +151,6 @@ export class TranscriptionService {
         await this.preloadWhisperModel();
         this.modelWasPreloaded = true;
         logger.transcription.info("Whisper model preloaded successfully");
-      } else {
-        logger.transcription.info(
-          "Whisper model preloading skipped - no models available",
-        );
-        setTimeout(async () => {
-          const onboardingCheck =
-            await this.onboardingService?.checkNeedsOnboarding();
-          if (!onboardingCheck?.needed) {
-            dialog.showMessageBox({
-              type: "warning",
-              title: "No Transcription Models",
-              message: "No transcription models are available.",
-              detail:
-                "To use voice transcription, please download a model from Speech Models.",
-              buttons: ["OK"],
-            });
-          }
-        }, 2000);
       }
     } else {
       logger.transcription.info("Whisper model preloading disabled");
@@ -109,8 +168,7 @@ export class TranscriptionService {
       await this.whisperProvider.preloadModel();
       logger.transcription.info("Whisper model preloaded successfully");
     } catch (error) {
-      logger.transcription.error("Failed to preload Whisper model:", error);
-      throw error;
+      logger.transcription.warn("Whisper local model preloading skipped (PhoVoice active):", error);
     }
   }
 
@@ -119,6 +177,14 @@ export class TranscriptionService {
    */
   public async isModelAvailable(): Promise<boolean> {
     try {
+      if (this.currentProvider === this.phovoiceProvider) {
+        return true;
+      }
+      const phovoiceInstances = await getInstancesByProvider(PROVIDER_TYPES.phovoice);
+      if (phovoiceInstances.length > 0) {
+        return true;
+      }
+
       const modelService = this.whisperProvider["modelService"];
       const availableModels = await modelService.getValidDownloadedModels();
       return Object.keys(availableModels).length > 0;
@@ -325,23 +391,61 @@ export class TranscriptionService {
         const aggregatedTranscription = session.transcriptionResults.join("");
 
         const provider = await this.selectProvider();
-        const finalResult = await provider.flush({
-          sessionId,
-          vocabulary: session.context.sharedData.vocabulary,
-          accessibilityContext: session.context.sharedData.accessibilityContext,
-          previousChunk,
-          aggregatedTranscription: aggregatedTranscription || undefined,
-          language: session.context.sharedData.userPreferences?.language,
-        });
-        const finalTranscription = finalResult.text;
+        let finalTranscription = "";
+        try {
+          const finalResult = await provider.flush({
+            sessionId,
+            vocabulary: session.context.sharedData.vocabulary,
+            accessibilityContext: session.context.sharedData.accessibilityContext,
+            previousChunk,
+            aggregatedTranscription: aggregatedTranscription || undefined,
+            language: session.context.sharedData.userPreferences?.language,
+          });
+          finalTranscription = finalResult.text;
+        } catch (flushErr) {
+          // If PhoVoice failed with a network error/timeout and audio file exists, attempt Local Whisper Fallback
+          if (
+            provider === this.phovoiceProvider &&
+            audioFilePath &&
+            fs.existsSync(audioFilePath) &&
+            (!(flushErr instanceof AppError) || flushErr.errorCode === ErrorCodes.NETWORK_ERROR)
+          ) {
+            logger.transcription.warn(
+              "[TranscriptionService] PhoVoice server unavailable, falling back to local Whisper...",
+              flushErr,
+            );
+            const audioData = await this.readWavAsFloat32(audioFilePath);
+            this.whisperProvider.reset();
+            await this.whisperProvider.transcribe({
+              audioData,
+              sampleRate: 16000,
+              context: {
+                sessionId,
+                vocabulary: session.context.sharedData.vocabulary,
+                accessibilityContext: session.context.sharedData.accessibilityContext,
+                language: session.context.sharedData.userPreferences?.language,
+              },
+            });
+            const fallbackResult = await this.whisperProvider.flush({
+              sessionId,
+              vocabulary: session.context.sharedData.vocabulary,
+              accessibilityContext: session.context.sharedData.accessibilityContext,
+              language: session.context.sharedData.userPreferences?.language,
+            });
+            finalTranscription = fallbackResult.text;
+          } else {
+            throw flushErr;
+          }
+        }
 
         this.accumulateTranscriptionResult(
           session.transcriptionResults,
           finalTranscription,
         );
         if (finalTranscription.trim()) {
-          logger.transcription.info("Whisper returned final transcription", {
+          logger.transcription.info("Provider returned final transcription", {
             sessionId,
+            provider: provider.name,
             transcriptionLength: finalTranscription.length,
             totalResults: session.transcriptionResults.length,
           });

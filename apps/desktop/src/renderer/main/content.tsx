@@ -52,9 +52,35 @@ const App: React.FC = () => {
     window.electronAPI?.on?.("navigate", handleNavigate);
     window.electronAPI?.on?.("navigate-to-note", handleNavigateToNote);
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl+Alt+R or Ctrl+Shift+R or F9
+      const isCtrlAltR = (e.ctrlKey || e.metaKey) && e.altKey && (e.key === "r" || e.key === "R");
+      const isCtrlShiftR = (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "r" || e.key === "R");
+      const isF9 = e.key === "F9";
+
+      if (isCtrlAltR || isCtrlShiftR || isF9) {
+        e.preventDefault();
+        import("@/trpc/react").then(async ({ trpcClient }) => {
+          try {
+            const state = await trpcClient.meetings.getMeetingState.query();
+            if (state && (state.state === "recording" || state.state === "starting")) {
+              await trpcClient.meetings.stopMeeting.mutate();
+            } else {
+              await trpcClient.meetingWidget.startNoteFromIdle.mutate();
+            }
+          } catch (err) {
+            console.error("Failed to toggle meeting from shortcut", err);
+          }
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       window.electronAPI?.off?.("navigate", handleNavigate);
       window.electronAPI?.off?.("navigate-to-note", handleNavigateToNote);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 

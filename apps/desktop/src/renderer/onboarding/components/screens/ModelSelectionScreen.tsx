@@ -81,12 +81,12 @@ export function ModelSelectionScreen({
   }, [recommended.data, selectedId]);
 
   const isLoading = availableModels.isLoading || recommended.isLoading;
-  const recommendedId = recommended.data;
-  const recommendedModel = (availableModels.data ?? []).find(
-    (m) => m.id === recommendedId,
-  );
+  const recommendedId = recommended.data || "phovoice-vietnamese-standard";
+  const recommendedModel =
+    (availableModels.data ?? []).find((m) => m.id === recommendedId) ??
+    (availableModels.data ?? [])[0];
   const otherModels = (availableModels.data ?? []).filter(
-    (m) => m.id !== recommendedId,
+    (m) => m.id !== recommendedModel?.id,
   );
 
   const isAlreadyDownloaded =
@@ -172,7 +172,8 @@ export function ModelSelectionScreen({
                         {recommendedModel.name}
                       </Label>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {t("onboarding.modelSelection.recommendationReason")}
+                        {recommendedModel.description ||
+                          t("onboarding.modelSelection.recommendationReason")}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -205,7 +206,7 @@ export function ModelSelectionScreen({
             )}
 
             {otherModels.length > 0 && (
-              <Collapsible>
+              <Collapsible defaultOpen={true}>
                 <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-sm hover:bg-muted/60">
                   <div className="text-left">
                     <p className="font-medium">

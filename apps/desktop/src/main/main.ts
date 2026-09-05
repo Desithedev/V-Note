@@ -1,8 +1,37 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { app, ipcMain } from "electron";
+import { app, ipcMain, protocol, net } from "electron";
+
+// Avoid startup crashes on Windows machines with an unavailable Chromium GPU
+// driver. This must run before Electron creates any BrowserWindow instances.
+if (process.platform === "win32") {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch("disable-gpu");
+}
+import { pathToFileURL, fileURLToPath } from "node:url";
+import fs from "node:fs";
+import path from "node:path";
+
+// The production main bundle is ESM, where Node does not provide the
+// CommonJS `__dirname` global. Several runtime dependencies (notably cron)
+// still read it, so define the equivalent once at the entrypoint scope.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { logger } from "./logger";
+
+// Register media:// scheme as privileged for streaming local audio files
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "media",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
 
 import started from "electron-squirrel-startup";
 import { AppManager } from "./core/app-manager";
@@ -35,19 +64,23 @@ if (started) {
 
 // Set App User Model ID for Windows (required for Squirrel.Windows)
 if (isWindows()) {
-  app.setAppUserModelId("com.prismical.desktop");
+  app.setAppUserModelId("com.v-note.desktop");
 }
 
-// Register the prismical:// protocol
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient("prismical", process.execPath, [
-      process.argv[1],
-    ]);
+// Register the v-note:// and legacy prismical:// protocols
+const registerCustomProtocol = (scheme: string) => {
+  if (process.defaultApp) {
+    if (process.argv.length >= 2) {
+      app.setAsDefaultProtocolClient(scheme, process.execPath, [
+        process.argv[1],
+      ]);
+    }
+  } else {
+    app.setAsDefaultProtocolClient(scheme);
   }
-} else {
-  app.setAsDefaultProtocolClient("prismical");
-}
+};
+registerCustomProtocol("v-note");
+registerCustomProtocol("prismical");
 
 // Enforce single instance
 const gotTheLock = app.requestSingleInstanceLock();
@@ -81,7 +114,9 @@ app.on("second-instance", (_event, commandLine) => {
   }
 
   // Check if this is a protocol launch on Windows/Linux
-  const url = commandLine.find((arg) => arg.startsWith("prismical://"));
+  const url = commandLine.find(
+    (arg) => arg.startsWith("v-note://") || arg.startsWith("prismical://"),
+  );
   if (url) {
     if (isInitialized) {
       appManager.handleDeepLink(url);
@@ -93,6 +128,81 @@ app.on("second-instance", (_event, commandLine) => {
 
 app.whenReady().then(async () => {
   try {
+    // Handle media:// URLs for high-performance audio playback with native Range request streaming
+    protocol.handle("media", async (request) => {
+      try {
+        let filePath = decodeURIComponent(
+          request.url.replace(/^media:\/\/local-file\//i, "").replace(/^media:\/\//i, ""),
+        );
+        if (process.platform === "win32" && filePath.startsWith("/")) {
+          filePath = filePath.slice(1);
+        }
+        const normalized = path.normalize(filePath);
+        if (!fs.existsSync(normalized)) {
+          logger.main.warn("Media file not found:", normalized);
+          return new Response("Not found", { status: 404 });
+        }
+
+        const stat = fs.statSync(normalized);
+        const fileSize = stat.size;
+        const rangeHeader = request.headers.get("Range");
+
+        if (rangeHeader) {
+          const parts = rangeHeader.replace(/bytes=/, "").split("-");
+          const start = parseInt(parts[0], 10);
+          const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+          const chunksize = end - start + 1;
+
+          const stream = fs.createReadStream(normalized, { start, end });
+          const webStream = new ReadableStream({
+            start(controller) {
+              stream.on("data", (chunk) => controller.enqueue(chunk));
+              stream.on("end", () => controller.close());
+              stream.on("error", (err) => controller.error(err));
+            },
+            cancel() {
+              stream.destroy();
+            },
+          });
+
+          return new Response(webStream, {
+            status: 206,
+            statusText: "Partial Content",
+            headers: {
+              "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+              "Accept-Ranges": "bytes",
+              "Content-Length": String(chunksize),
+              "Content-Type": "audio/wav",
+            },
+          });
+        }
+
+        const stream = fs.createReadStream(normalized);
+        const webStream = new ReadableStream({
+          start(controller) {
+            stream.on("data", (chunk) => controller.enqueue(chunk));
+            stream.on("end", () => controller.close());
+            stream.on("error", (err) => controller.error(err));
+          },
+          cancel() {
+            stream.destroy();
+          },
+        });
+
+        return new Response(webStream, {
+          status: 200,
+          headers: {
+            "Accept-Ranges": "bytes",
+            "Content-Length": String(fileSize),
+            "Content-Type": "audio/wav",
+          },
+        });
+      } catch (err) {
+        logger.main.warn("Failed to stream media file:", err);
+        return new Response("Not found", { status: 404 });
+      }
+    });
+
     // macOS dock icon in dev: packaged builds read the bundle icon from
     // packagerConfig.icon, but electron-forge start shows Electron's default
     // unless we set one explicitly.

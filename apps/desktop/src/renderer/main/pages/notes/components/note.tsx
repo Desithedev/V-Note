@@ -1,12 +1,21 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Calendar,
   ClipboardCopy,
+  Download,
   FileTextIcon,
+  Headphones,
   Loader2,
+  MessageSquare,
   MoreHorizontal,
+  Music,
+  Pause,
+  Play,
+  RotateCcw,
+  RotateCw,
   Star,
   Trash2,
+  Volume2,
 } from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { useTranslation } from "react-i18next";
@@ -81,6 +90,7 @@ export type NotePageUIProps = {
   onEmojiChange: (emoji: string | null) => void;
   onStarredChange: (starred: boolean) => void;
   onFolderChange: (folderId: number | null) => void;
+  onToggleTranscription?: () => void;
   isDeleting?: boolean;
   children?: ReactNode;
 };
@@ -133,12 +143,76 @@ export default function Note({
   onEmojiChange,
   onStarredChange,
   onFolderChange,
+  onToggleTranscription,
   isDeleting = false,
   children,
 }: NotePageUIProps) {
   const { t, i18n } = useTranslation();
   const { setActions, setHeaderContent } = useSettingsHeaderActions();
   const utils = api.useUtils();
+  const { data: audioData } = api.meetings.getNoteAudio.useQuery(
+    { noteId },
+    { enabled: !!noteId },
+  );
+
+  // Audio Player State for Note View
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const sessionKeys = audioData?.sessionKeys ?? [];
+  const activeSessionId = selectedSessionId ?? sessionKeys[0];
+  const activeSession = activeSessionId && audioData?.sessions ? audioData.sessions[activeSessionId] : null;
+  const currentAudioSrc = activeSession?.dataUrl ?? audioData?.dataUrl ?? undefined;
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [currentAudioTime, setCurrentAudioTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
+
+  const formatAudioTime = (sec: number) => {
+    if (!Number.isFinite(sec) || isNaN(sec) || sec < 0) return "00:00";
+    const s = Math.floor(sec);
+    const m = Math.floor(s / 60);
+    const remS = s % 60;
+    return `${String(m).padStart(2, "0")}:${String(remS).padStart(2, "0")}`;
+  };
+
+  const handleTogglePlayPause = () => {
+    if (!audioRef.current || !currentAudioSrc) return;
+    if (isPlayingAudio) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+    } else {
+      audioRef.current.play().then(() => setIsPlayingAudio(true)).catch(() => {});
+    }
+  };
+
+  const handleSeek = (seconds: number) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = seconds;
+    setCurrentAudioTime(seconds);
+  };
+
+  const handleSkip = (deltaSec: number) => {
+    if (!audioRef.current) return;
+    const safeMax = Number.isFinite(audioDuration) && audioDuration > 0 ? audioDuration : 999999;
+    const newTime = Math.min(
+      Math.max(0, audioRef.current.currentTime + deltaSec),
+      safeMax,
+    );
+    audioRef.current.currentTime = newTime;
+    setCurrentAudioTime(newTime);
+  };
+
+  const handleCycleSpeed = () => {
+    const speeds = [1.0, 1.25, 1.5, 2.0];
+    const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
+    const nextSpeed = speeds[nextIdx];
+    setPlaybackSpeed(nextSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+    }
+  };
+
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   // Re-render once a minute so the "Edited X ago" label stays fresh without
@@ -360,6 +434,17 @@ export default function Note({
                     </TooltipContent>
                   </Tooltip>
 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer rounded-lg border-border/60 shadow-2xs"
+                    onClick={onToggleTranscription}
+                    title="Mở / Đóng bảng Phiên âm & Trình phát Audio"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                    <span>Xem Phiên âm & Audio</span>
+                  </Button>
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -391,6 +476,183 @@ export default function Note({
                 </>
               )}
             </div>
+
+            {/* Danh sách các file âm thanh được ghi trong Note (xếp từ trên xuống dưới) */}
+            {sessionKeys.length > 0 && (
+              <div className="mt-3 mb-3 flex flex-col gap-2.5 rounded-2xl border border-border/70 dark:border-white/10 bg-card/95 dark:bg-zinc-900/90 p-3.5 shadow-md backdrop-blur-xl transition-all max-w-3xl">
+                <div className="flex items-center justify-between px-1 pb-1.5 border-b border-border/40 dark:border-white/5">
+                  <div className="flex items-center gap-2">
+                    <Music className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-semibold text-foreground tracking-wide">
+                      Danh sách file âm thanh đã ghi
+                    </span>
+                    <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      {sessionKeys.length} file
+                    </span>
+                  </div>
+
+                  <span className="text-[11px] text-muted-foreground">
+                    Sắp xếp theo thứ tự ghi âm
+                  </span>
+                </div>
+
+                {/* Danh sách các file xếp từ trên xuống dưới */}
+                <div className="flex flex-col gap-2">
+                  {sessionKeys.map((sId, sIdx) => {
+                    const session = audioData?.sessions?.[sId];
+                    const isCurrent = activeSessionId === sId;
+                    const isPlaying = isCurrent && isPlayingAudio;
+
+                    return (
+                      <div
+                        key={sId}
+                        className={`flex flex-col gap-2 p-2.5 rounded-xl border transition-all ${
+                          isCurrent
+                            ? "bg-primary/5 border-primary/35 ring-1 ring-primary/20 shadow-xs"
+                            : "bg-muted/30 hover:bg-muted/60 border-border/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {/* Nút Play / Pause cho từng file */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-7 w-7 shrink-0 rounded-full cursor-pointer transition-colors ${
+                                isCurrent
+                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                  : "bg-background/90 text-foreground hover:bg-background border border-border/50"
+                              }`}
+                              onClick={() => {
+                                if (isCurrent) {
+                                  handleTogglePlayPause();
+                                } else {
+                                  setSelectedSessionId(sId);
+                                  setIsPlayingAudio(false);
+                                  if (audioRef.current && session?.dataUrl) {
+                                    audioRef.current.src = session.dataUrl;
+                                    audioRef.current.load();
+                                    audioRef.current.oncanplay = () => {
+                                      audioRef.current?.play().then(() => setIsPlayingAudio(true)).catch(() => {});
+                                      if (audioRef.current) audioRef.current.oncanplay = null;
+                                    };
+                                  }
+                                }
+                              }}
+                              title={isPlaying ? "Tạm dừng" : "Phát đoạn này"}
+                            >
+                              {isPlaying ? (
+                                <Pause className="h-3.5 w-3.5 fill-current" />
+                              ) : (
+                                <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+                              )}
+                            </Button>
+
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-semibold text-foreground">
+                                  Đoạn ghi âm #{sIdx + 1}
+                                </span>
+                                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-muted/80 text-muted-foreground border border-border/30">
+                                  {session?.systemDataUrl ? "Âm thanh hệ thống" : "Microphone"}
+                                </span>
+                              </div>
+                              <span className="text-[10.5px] font-mono tabular-nums text-muted-foreground">
+                                {isCurrent
+                                  ? `${formatAudioTime(currentAudioTime)} / ${formatAudioTime(audioDuration)}`
+                                  : session?.durationMs
+                                    ? formatAudioTime(session.durationMs / 1000)
+                                    : "Đoạn ghi âm"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isCurrent && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                                  onClick={() => handleSkip(-5)}
+                                  title="Lùi 5s"
+                                >
+                                  <RotateCcw className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                                  onClick={() => handleSkip(5)}
+                                  title="Tiến 5s"
+                                >
+                                  <RotateCw className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 px-1.5 text-[10.5px] font-mono text-muted-foreground hover:text-foreground border-border/50 cursor-pointer"
+                                  onClick={handleCycleSpeed}
+                                  title="Tốc độ phát lại"
+                                >
+                                  {playbackSpeed}x
+                                </Button>
+                              </>
+                            )}
+
+                            {session?.dataUrl && (
+                              <a
+                                href={session.dataUrl}
+                                download={`ghi-am-doan-${sIdx + 1}.wav`}
+                                className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                title="Tải file âm thanh này về máy"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Thanh tua thời gian Scrubber chỉ hiện khi file này đang chọn */}
+                        {isCurrent && (
+                          <div className="relative w-full flex items-center h-2 px-1 pt-1">
+                            <input
+                              type="range"
+                              min={0}
+                              max={audioDuration || 100}
+                              step={0.1}
+                              value={currentAudioTime}
+                              onChange={(e) => handleSeek(parseFloat(e.target.value))}
+                              className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Native HTML5 Audio Controller */}
+                <audio
+                  ref={audioRef}
+                  src={currentAudioSrc}
+                  preload="auto"
+                  onTimeUpdate={() => {
+                    if (audioRef.current) {
+                      setCurrentAudioTime(audioRef.current.currentTime);
+                    }
+                  }}
+                  onLoadedMetadata={() => {
+                    if (audioRef.current) {
+                      setAudioDuration(audioRef.current.duration);
+                    }
+                  }}
+                  onEnded={() => setIsPlayingAudio(false)}
+                  onPause={() => setIsPlayingAudio(false)}
+                  onPlay={() => setIsPlayingAudio(true)}
+                />
+              </div>
+            )}
 
             {eventData ? (
               <div className="@container/event-chip flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-muted-foreground">

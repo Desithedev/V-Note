@@ -70,3 +70,29 @@ agents/
 # Superpowers / agent artifacts
 .superpowers/
 .worktrees/
+
+# Electron diagnostic & test profiles
+_diag*/
+_diagnose*/
+_test-*/
+packager-tmp/
+**/packager-tmp/
+
+# Download artifacts & build logs
+electron.zip
+*.log
+*.log.txt
+build-log.txt
+
+# Databases
+*.db
+*.db-wal
+*.db-shm
+
+# Electron runtime cache
+electron-runtime-*/
+**/electron-runtime-*/
+
+# Local AI assistant configurations
+opencode.json
+

@@ -7,10 +7,10 @@ import { toast } from "sonner";
 import { api } from "@/trpc/react";
 import { useTranslation } from "react-i18next";
 
-const CHANGELOG_URL = "https://github.com/amicalhq/prismical/releases";
-const GITHUB_URL = "https://github.com/amicalhq/prismical";
+const CHANGELOG_URL = "https://github.com/Desithedev/V-Note/releases";
+const GITHUB_URL = "https://github.com/Desithedev/V-Note";
 const DISCORD_URL = "https://prismical.ai/community";
-const CONTACT_EMAIL = "contact@prismical.ai";
+const CONTACT_EMAIL = "contact@v-note.ai";
 
 export default function AboutSettingsPage() {
   const { t } = useTranslation();

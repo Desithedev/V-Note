@@ -1,11 +1,12 @@
-const STORAGE_KEY = "prismical:recentNotes";
+const STORAGE_KEY = "v-note:recentNotes";
+const LEGACY_STORAGE_KEY = "prismical:recentNotes";
 const MAX_ENTRIES = 20;
 
 type StoredEntry = { id: number; visitedAt: number };
 
 function read(): StoredEntry[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];

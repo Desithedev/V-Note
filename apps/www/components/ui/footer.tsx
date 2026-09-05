@@ -42,9 +42,9 @@ export function Footer() {
                 src="/prismical-icon.svg"
                 width={32}
                 height={32}
-                alt="Prismical Logo"
+                alt="V-Note Logo"
               />
-              <span className="font-medium">Prismical</span>
+              <span className="font-medium">V-Note</span>
             </Link>
             <p className="mt-2 text-sm text-muted-foreground">
               Open source Speech-to-Text App
@@ -78,7 +78,7 @@ export function Footer() {
               <Link href="https://x.com/prismicalhq" className="text-muted-foreground hover:text-foreground">
                 <TwitterIcon />
               </Link>
-              <Link href="https://github.com/amicalhq/prismical" className="text-muted-foreground hover:text-foreground">
+              <Link href="https://github.com/Desithedev/V-Note" className="text-muted-foreground hover:text-foreground">
                 <GithubIcon />
               </Link>
               <Link href="/community" className="text-muted-foreground hover:text-foreground">

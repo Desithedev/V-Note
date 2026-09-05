@@ -3,7 +3,7 @@ import { SubscriptionForm } from "@/components/ui/subscription-form";
 
 export const metadata = {
   title: "Changelog",
-  description: "Get the latest product updates and changes to Prismical.",
+  description: "Get the latest product updates and changes to V-Note.",
 };
 
 export default function ChangelogPage() {

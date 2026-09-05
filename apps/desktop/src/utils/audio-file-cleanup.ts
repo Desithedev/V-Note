@@ -15,14 +15,17 @@ export async function cleanupAudioFiles(options?: {
   const maxAgeMs = options?.maxAgeMs ?? 7 * 24 * 60 * 60 * 1000; // 7 days
   const maxSizeBytes = options?.maxSizeBytes ?? 500 * 1024 * 1024; // 500MB
 
-  const audioDir = path.join(app.getPath("temp"), "prismical-audio");
+  const audioDirs = [
+    path.join(app.getPath("temp"), "v-note-audio"),
+    path.join(app.getPath("temp"), "prismical-audio"),
+  ];
 
-  try {
-    // Check if directory exists
-    if (!fs.existsSync(audioDir)) {
-      logger.main.debug("Audio directory does not exist, nothing to clean");
-      return;
-    }
+  for (const audioDir of audioDirs) {
+    try {
+      // Check if directory exists
+      if (!fs.existsSync(audioDir)) {
+        continue;
+      }
 
     const files = await fs.promises.readdir(audioDir);
     const now = Date.now();
@@ -89,14 +92,15 @@ export async function cleanupAudioFiles(options?: {
         remainingCount: audioFiles.length - deletedCount,
         remainingSizeMB: Math.round((totalSize - deletedSize) / 1024 / 1024),
       });
-    } else {
-      logger.main.debug("No audio files needed cleanup", {
-        totalCount: audioFiles.length,
-        totalSizeMB: Math.round(totalSize / 1024 / 1024),
-      });
+      } else {
+        logger.main.debug("No audio files needed cleanup", {
+          totalCount: audioFiles.length,
+          totalSizeMB: Math.round(totalSize / 1024 / 1024),
+        });
+      }
+    } catch (error) {
+      logger.main.error("Audio cleanup failed for dir " + audioDir, { error });
     }
-  } catch (error) {
-    logger.main.error("Audio cleanup failed", { error });
   }
 }
 
@@ -106,9 +110,10 @@ export async function cleanupAudioFiles(options?: {
  */
 export async function deleteAudioFile(filePath: string): Promise<void> {
   try {
-    // Ensure the file is in the audio directory
-    const audioDir = path.join(app.getPath("temp"), "prismical-audio");
-    if (!filePath.startsWith(audioDir)) {
+    // Ensure the file is in an audio directory
+    const vnoteDir = path.join(app.getPath("temp"), "v-note-audio");
+    const legacyDir = path.join(app.getPath("temp"), "prismical-audio");
+    if (!filePath.startsWith(vnoteDir) && !filePath.startsWith(legacyDir)) {
       throw new Error("File is not in the audio directory");
     }
 

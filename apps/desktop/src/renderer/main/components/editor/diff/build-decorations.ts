@@ -147,7 +147,7 @@ export function buildDiffDecorations(
     if (change.toA > change.fromA) {
       decorations.push(
         Decoration.inline(change.fromA, change.toA, {
-          class: "prismical-diff-delete",
+          class: "vnote-diff-delete prismical-diff-delete",
         }),
       );
     }
@@ -169,7 +169,7 @@ export function buildDiffDecorations(
 
       const widget = (): HTMLElement => {
         const wrapper = document.createElement(tag);
-        wrapper.className = "prismical-diff-insert";
+        wrapper.className = "vnote-diff-insert prismical-diff-insert";
         wrapper.contentEditable = "false";
         wrapper.appendChild(serializer.serializeFragment(slice.content));
         return wrapper;

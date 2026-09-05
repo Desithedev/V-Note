@@ -11,9 +11,12 @@ import { api, trpcClient } from "@/trpc/react";
 import { combinedLevel, useMeetingLevel } from "@/hooks/useMeetingLevel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type {
+  MeetingTranscriptFontSize,
+  MeetingTranscriptMode,
   MeetingWidgetEdge,
   MeetingWidgetState,
 } from "@/types/meeting-widget";
+import type { AudioSource } from "@/types/meeting";
 import { IdlePill } from "./idle-pill";
 import { DetectionPill } from "./detection-pill";
 import { RecordingPill } from "./recording-pill";
@@ -42,10 +45,17 @@ function RecordingWidgetWindow() {
   const waveformLevel = combinedLevel(meetingLevels);
 
   const startNoteFromIdleMutation = api.meetingWidget.startNoteFromIdle.useMutation();
+  const startRecordingForNoteMutation = api.meetingWidget.startRecordingForNote.useMutation();
   const startNoteFromDetectionMutation =
     api.meetingWidget.startNoteFromDetection.useMutation();
   const dismissDetectionMutation = api.meetingWidget.dismissDetection.useMutation();
   const createBlankNoteMutation = api.meetingWidget.createBlankNote.useMutation();
+  const updateWidgetSettingsMutation =
+    api.settings.updateMeetingWidgetSettings.useMutation();
+  const utils = api.useUtils();
+  const setSourceMutedMutation = api.meetings.setSourceMuted.useMutation({
+    onSuccess: (next) => setLiveState((current) => current ? { ...current, mutedSources: next.mutedSources } : current),
+  });
 
   const state = liveState ?? initialStateQuery.data ?? null;
   const widgetVisible = state?.visible ?? false;
@@ -53,6 +63,10 @@ function RecordingWidgetWindow() {
   const meetingDetection = state?.meetingDetection ?? null;
   const currentNoteId = state?.noteId ?? null;
   const edge: MeetingWidgetEdge = state?.edge ?? "right";
+  const showTranscript = state?.showTranscript ?? true;
+  const transcriptMode: MeetingTranscriptMode = state?.transcriptMode ?? "full";
+  const transcriptFontSize: MeetingTranscriptFontSize =
+    state?.transcriptFontSize ?? "sm";
 
   const isRecording =
     meetingState === "recording" ||
@@ -163,6 +177,10 @@ function RecordingWidgetWindow() {
     startNoteFromIdleMutation.mutate();
   }, [startNoteFromIdleMutation]);
 
+  const handleStartRecordingForNote = useCallback((noteId: number) => {
+    startRecordingForNoteMutation.mutate({ noteId });
+  }, [startRecordingForNoteMutation]);
+
   const handleTakeNotes = useCallback(() => {
     createBlankNoteMutation.mutate();
   }, [createBlankNoteMutation]);
@@ -174,6 +192,41 @@ function RecordingWidgetWindow() {
   const handleDismissDetection = useCallback(() => {
     dismissDetectionMutation.mutate();
   }, [dismissDetectionMutation]);
+
+  const handleShowTranscriptChange = useCallback(
+    (nextShow: boolean) => {
+      updateWidgetSettingsMutation.mutate(
+        { showTranscript: nextShow },
+        { onSuccess: () => utils.settings.getMeetingWidgetSettings.invalidate() },
+      );
+    },
+    [updateWidgetSettingsMutation, utils],
+  );
+
+  const handleTranscriptModeChange = useCallback(
+    (nextMode: MeetingTranscriptMode) => {
+      updateWidgetSettingsMutation.mutate(
+        { transcriptMode: nextMode },
+        { onSuccess: () => utils.settings.getMeetingWidgetSettings.invalidate() },
+      );
+    },
+    [updateWidgetSettingsMutation, utils],
+  );
+
+  const handleTranscriptFontSizeChange = useCallback(
+    (nextFontSize: MeetingTranscriptFontSize) => {
+      updateWidgetSettingsMutation.mutate(
+        { transcriptFontSize: nextFontSize },
+        { onSuccess: () => utils.settings.getMeetingWidgetSettings.invalidate() },
+      );
+    },
+    [updateWidgetSettingsMutation, utils],
+  );
+
+  const handleToggleSourceMute = useCallback((source: AudioSource) => {
+    const muted = !(state?.mutedSources?.[source] ?? false);
+    setSourceMutedMutation.mutate({ source, muted });
+  }, [setSourceMutedMutation, state?.mutedSources]);
 
   // While recording, the widget rests in its expanded layout (Open Note +
   // waveform anchor + drag handle), so the handle is always visible.
@@ -205,10 +258,19 @@ function RecordingWidgetWindow() {
               <RecordingPill
                 key="recording"
                 edge={edge}
+                noteId={currentNoteId}
+                showTranscript={showTranscript}
+                transcriptMode={transcriptMode}
+                transcriptFontSize={transcriptFontSize}
+                mutedSources={state?.mutedSources ?? { mic: false, system: false }}
+                onToggleSourceMute={handleToggleSourceMute}
                 meetingState={meetingState}
                 level={waveformLevel}
                 onStop={handleStop}
                 onOpenNote={handleOpenNote}
+                onShowTranscriptChange={handleShowTranscriptChange}
+                onTranscriptModeChange={handleTranscriptModeChange}
+                onTranscriptFontSizeChange={handleTranscriptFontSizeChange}
                 showHandle={showHandle}
                 onDragStart={handleDragStart}
               />
@@ -229,6 +291,7 @@ function RecordingWidgetWindow() {
                 onTakeNotes={handleTakeNotes}
                 takingNotes={createBlankNoteMutation.isPending}
                 onStartRecording={handleStartRecording}
+                onStartRecordingForNote={handleStartRecordingForNote}
                 startingRecording={startNoteFromIdleMutation.isPending}
                 showHandle={showHandle}
                 onDragStart={handleDragStart}

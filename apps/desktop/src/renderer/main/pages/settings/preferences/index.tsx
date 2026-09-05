@@ -21,6 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Folder, FolderOpen, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -71,6 +73,35 @@ export default function PreferencesSettingsPage() {
       },
     });
   const restartAppMutation = api.settings.restartApp.useMutation();
+
+  const recordingSettingsQuery = api.settings.getRecordingSettings.useQuery();
+  const selectStorageMutation = api.settings.selectAudioStoragePath.useMutation({
+    onSuccess: (res) => {
+      if (res.success && res.path) {
+        toast.success(`Đã cập nhật thư mục lưu trữ: ${res.path}`);
+        utils.settings.getRecordingSettings.invalidate();
+      }
+    },
+    onError: (err) => {
+      toast.error(`Lỗi chọn thư mục: ${err.message}`);
+    },
+  });
+
+  const openStorageMutation = api.settings.openAudioStoragePath.useMutation({
+    onError: (err) => {
+      toast.error(`Không thể mở thư mục: ${err.message}`);
+    },
+  });
+
+  const resetStorageMutation = api.settings.resetAudioStoragePath.useMutation({
+    onSuccess: () => {
+      toast.success("Đã đặt lại thư mục lưu trữ về mặc định");
+      utils.settings.getRecordingSettings.invalidate();
+    },
+    onError: (err) => {
+      toast.error(`Lỗi đặt lại: ${err.message}`);
+    },
+  });
 
   useEffect(() => {
     const persisted = uiSettingsQuery.data?.locale ?? null;
@@ -285,6 +316,7 @@ export default function PreferencesSettingsPage() {
                   <SelectItem value="system">
                     {t("settings.preferences.language.options.system")}
                   </SelectItem>
+                  <SelectItem value="vi">Tiếng Việt</SelectItem>
                   <SelectItem value="en">
                     {t("settings.preferences.language.options.en")}
                   </SelectItem>
@@ -314,8 +346,6 @@ export default function PreferencesSettingsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* add future preferences here in a card */}
       </div>
 
       <AlertDialog open={restartDialogOpen} onOpenChange={setRestartDialogOpen}>

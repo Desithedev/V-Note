@@ -1,6 +1,6 @@
 {
   "app": {
-    "loading": "Loading Prismical..."
+    "loading": "Loading V-Note..."
   },
   "errors": {
     "generic": "Something went wrong. Please try again."
@@ -19,7 +19,7 @@
     "version": "Version {{version}}"
   },
   "tray": {
-    "tooltip": "Prismical",
+    "tooltip": "V-Note",
     "openConsole": "Open Console",
     "about": "About",
     "quit": "Quit"
@@ -69,7 +69,7 @@
     },
     "permissions": {
       "title": "Setup Permissions",
-      "subtitle": "Prismical needs microphone and system audio access to work properly",
+      "subtitle": "V-Note needs microphone and system audio access to work properly",
       "waiting": "Waiting for permissions...",
       "polling": "Checking for permission changes...",
       "allGranted": {
@@ -95,11 +95,11 @@
       "systemAudio": {
         "title": "System Audio Access",
         "description": "Required for capturing meeting audio from your Mac",
-        "deniedHelp": "Allow Prismical to capture system audio in System Settings."
+        "deniedHelp": "Allow V-Note to capture system audio in System Settings."
       }
     },
     "discovery": {
-      "title": "How did you discover Prismical?",
+      "title": "How did you discover V-Note?",
       "subtitle": "This helps us understand where our users come from",
       "sources": {
         "searchEngine": "Search engine (Google, Bing, etc.)",
@@ -111,7 +111,7 @@
         "other": "Other"
       },
       "toast": {
-        "selectSource": "Please select how you discovered Prismical",
+        "selectSource": "Please select how you discovered V-Note",
         "otherDetailsRequired": "Please provide details for \"Other\""
       },
       "other": {
@@ -157,8 +157,8 @@
     },
     "completion": {
       "title": "You're all set!",
-      "subtitle": "Welcome to Prismical.",
-      "start": "Start using Prismical"
+      "subtitle": "Welcome to V-Note.",
+      "start": "Start using V-Note"
     }
   },
   "recordingNotifications": {
@@ -276,15 +276,15 @@
       },
       "about": {
         "title": "About",
-        "description": "About Prismical and version information"
+        "description": "About V-Note and version information"
       }
     },
     "sidebar": {
       "docs": "Docs",
       "community": "Community",
       "discordAlt": "Discord",
-      "logoAlt": "Prismical Logo",
-      "brand": "Prismical",
+      "logoAlt": "V-Note Logo",
+      "brand": "V-Note",
       "backToHome": "Back to home",
       "favorites": "Favorites",
       "folders": "Folders",
@@ -359,7 +359,7 @@
       },
       "meetingWidget": {
         "label": "Floating widget",
-        "description": "Show a floating recording pill on the side of the screen when Prismical is in the background",
+        "description": "Show a floating recording pill on the side of the screen when V-Note is in the background",
         "options": {
           "never": "Never",
           "whileRecording": "Only when recording",
@@ -377,7 +377,7 @@
         },
         "restartDialog": {
           "title": "Restart required",
-          "description": "Restart Prismical to apply language changes. You can also apply on next start.",
+          "description": "Restart V-Note to apply language changes. You can also apply on next start.",
           "restartNow": "Restart now",
           "later": "Apply on next start"
         },
@@ -418,7 +418,7 @@
       },
       "telemetry": {
         "label": "Anonymous Telemetry",
-        "description": "Help improve Prismical by sharing anonymous usage data.",
+        "description": "Help improve V-Note by sharing anonymous usage data.",
         "learnMore": "Learn more"
       },
       "dataLocation": {
@@ -590,7 +590,7 @@
         "handsFreeUpdated": "Hands-free mode shortcut updated",
         "pasteLastTranscriptUpdated": "Paste last transcript shortcut updated",
         "newNoteUpdated": "New note shortcut updated",
-        "openAppUpdated": "Toggle Prismical shortcut updated"
+        "openAppUpdated": "Toggle V-Note shortcut updated"
       },
       "pushToTalk": {
         "label": "Push to talk",
@@ -609,12 +609,12 @@
         "description": "Open notes window and create a new note"
       },
       "openApp": {
-        "label": "Toggle Prismical",
-        "description": "Show the Prismical window from anywhere, or hide it if it's already in focus"
+        "label": "Toggle V-Note",
+        "description": "Show the V-Note window from anywhere, or hide it if it's already in focus"
       },
       "builtIn": {
         "title": "In-app shortcuts",
-        "description": "These work while Prismical is focused — they won't fire from other apps.",
+        "description": "These work while V-Note is focused — they won't fire from other apps.",
         "newNote": "New note",
         "commandSearch": "Open command search",
         "home": "Go to home",
@@ -1041,7 +1041,7 @@
         },
         "loginDialog": {
           "title": "Sign In Required",
-          "description": "To use Prismical Cloud transcription, you need to sign in with your Prismical account. This enables secure cloud-based transcription with high accuracy.",
+          "description": "To use V-Note Cloud transcription, you need to sign in with your V-Note account. This enables secure cloud-based transcription with high accuracy.",
           "browserNotice": "After clicking \"Sign In\", you'll be redirected to your browser to complete the login process.",
           "cloudBenefit": "Fast, accurate cloud transcription",
           "cancel": "Cancel",

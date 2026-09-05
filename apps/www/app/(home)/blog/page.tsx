@@ -11,7 +11,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Blog",
-  description: "A blog about Prismical, Productivity and AI",
+  description: "A blog about V-Note, Productivity and AI",
 };
 
 export default function Page(): React.ReactElement {

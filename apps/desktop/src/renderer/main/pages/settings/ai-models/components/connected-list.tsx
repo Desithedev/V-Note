@@ -67,6 +67,11 @@ function configPreview(type: ProviderType, config: InstanceConfig): string {
     case PROVIDER_TYPES.openAICompatible: {
       return "baseURL" in config ? config.baseURL : "—";
     }
+    case PROVIDER_TYPES.phovoice: {
+      const url = "baseURL" in config ? config.baseURL : "—";
+      const key = "apiKey" in config && config.apiKey ? ` (Authenticated)` : ` (Local/Open)`;
+      return `${url}${key}`;
+    }
     case PROVIDER_TYPES.localWhisper: {
       const downloaded =
         "downloadedModels" in config ? config.downloadedModels : [];

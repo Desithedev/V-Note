@@ -12,7 +12,7 @@ const fs = require("node:fs");
 const WHISPER_CPP_DIR = path.join(__dirname, "..", "whisper.cpp");
 const PATCHES_DIR = path.join(__dirname, "..", "patches");
 
-if (!fs.existsSync(PATCHES_DIR)) {
+if (!fs.existsSync(PATCHES_DIR) || !fs.existsSync(WHISPER_CPP_DIR)) {
   process.exit(0);
 }
 

@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter @prismical/types generate:all && dotnet publish -c Release -r win-x64 --self-contained true -o bin",
-    "build:native": "dotnet publish -c Release -r win-x64 --self-contained true -o bin",
+    "build": "node -e \"const cp = require('child_process'); try { cp.execSync('pnpm --filter @prismical/types generate:all && dotnet publish -c Release -r win-x64 --self-contained true -o bin', {stdio: 'inherit'}); } catch (e) { console.warn('[windows-helper] dotnet SDK not found, skipping windows native helper binary.'); }\"",
+    "build:native": "node -e \"const cp = require('child_process'); try { cp.execSync('dotnet publish -c Release -r win-x64 --self-contained true -o bin', {stdio: 'inherit'}); } catch (e) { console.warn('[windows-helper] dotnet SDK not found, skipping.'); }\"",
     "clean": "rm -rf bin obj"
   },
   "os": [

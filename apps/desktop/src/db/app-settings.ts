@@ -83,7 +83,7 @@ const defaultSettings: AppSettingsData = {
     blockedBundleIds: [],
   },
   transcription: {
-    language: "en",
+    language: "vi",
     autoTranscribe: true,
     confidenceThreshold: 0.8,
     enablePunctuation: true,
@@ -91,7 +91,7 @@ const defaultSettings: AppSettingsData = {
   },
   dictation: {
     autoDetectEnabled: true,
-    selectedLanguage: "en",
+    selectedLanguage: "vi",
   },
   recording: {
     defaultFormat: "wav",
@@ -104,10 +104,17 @@ const defaultSettings: AppSettingsData = {
     visibility: "always",
     edge: "right",
     normalizedPosition: 0.5,
+    showTranscript: true,
+    transcriptMode: "full",
+    transcriptFontSize: "sm",
   },
   shortcuts: getDefaultShortcuts(),
-  // No `modelDefaults` here — undefined means "no default set yet"; the
-  // pipeline falls back to its preferred-order logic until the user picks.
+  modelDefaults: {
+    transcription: {
+      instanceId: "system-phovoice",
+      modelId: "68M",
+    },
+  },
 };
 
 // Get all app settings (with automatic migration if needed)

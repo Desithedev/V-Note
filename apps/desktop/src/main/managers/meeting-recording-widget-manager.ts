@@ -8,6 +8,7 @@ import type {
 import type { WindowManager } from "../core/window-manager";
 import type { MeetingManager } from "./meeting-manager";
 import type { MeetingRuntimeSnapshot } from "@/types/meeting";
+import type { AudioSource } from "@/types/meeting";
 import type { MeetingWidgetState } from "@/types/meeting-widget";
 import type { MeetingStartNotificationPayload } from "@/types/meeting-start-notifications";
 
@@ -49,6 +50,10 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
     noteId: null,
     meetingDetection: null,
     edge: "right",
+    showTranscript: true,
+    transcriptMode: "full",
+    transcriptFontSize: "sm",
+    mutedSources: { mic: false, system: false },
   };
 
   private started = false;
@@ -56,6 +61,9 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
     visibility: "always",
     edge: "right",
     normalizedPosition: 0.5,
+    showTranscript: true,
+    transcriptMode: "full",
+    transcriptFontSize: "sm",
   };
   private hideTimer: NodeJS.Timeout | null = null;
   private ipcHandlersRegistered = false;
@@ -103,6 +111,7 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
     this.detachListeners();
     this.unregisterIpcHandlers();
     this.clearHideTimer();
+    this.deps.windowManager.setMeetingWidgetPopupOpen(false);
     this.deps.windowManager.hideMeetingWidgetWindow();
     this.updateState({
       visibility: this.settings.visibility,
@@ -111,6 +120,10 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       noteId: this.deps.meetingManager.getState().noteId,
       meetingDetection: null,
       edge: this.settings.edge,
+      showTranscript: this.settings.showTranscript,
+      transcriptMode: this.settings.transcriptMode,
+      transcriptFontSize: this.settings.transcriptFontSize,
+      mutedSources: runtimeMutedSources(this.deps.meetingManager.getState()),
     });
   }
 
@@ -188,6 +201,11 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
     );
   }
 
+  setSourceMuted(source: AudioSource, muted: boolean): void {
+    this.deps.meetingManager.setSourceMuted(source, muted);
+    this.refreshState("source-muted");
+  }
+
   dragMove(
     screenX: number,
     screenY: number,
@@ -234,8 +252,8 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       edge: snapped.edge,
       normalizedPosition: snapped.normalizedPosition,
     });
-    // Propagate the new edge into the renderer state so it can re-orient.
-    this.refreshState("drag-end-snap");
+    // refreshState is triggered by the "meeting-widget-settings-changed"
+    // listener, so no explicit refresh is needed here.
   }
 
   private attachListeners(): void {
@@ -348,6 +366,12 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
   private refreshState(reason: string): boolean {
     const runtime = this.deps.meetingManager.getState();
     const nextVisible = this.shouldShowWidget(runtime);
+    const popupOpen =
+      nextVisible &&
+      this.settings.showTranscript &&
+      isActiveMeetingState(runtime.state);
+
+    this.deps.windowManager.setMeetingWidgetPopupOpen(popupOpen);
 
     if (nextVisible) {
       this.clearHideTimer();
@@ -368,6 +392,10 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       noteId: runtime.noteId,
       meetingDetection: this.state.meetingDetection,
       edge: this.settings.edge,
+      showTranscript: this.settings.showTranscript,
+      transcriptMode: this.settings.transcriptMode,
+      transcriptFontSize: this.settings.transcriptFontSize,
+      mutedSources: runtime.mutedSources,
     });
 
     logger.debug("Meeting recording widget state refreshed", {
@@ -387,31 +415,23 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       return false;
     }
 
-    // A pending meeting detection always surfaces the widget — even when the
-    // main app is focused. The widget replaces the old top-right notification
-    // window, which was visible regardless of focus. Without this override,
-    // detections fired while the main app is foregrounded would be invisible.
+    // A pending meeting detection always surfaces the widget
     if (this.state.meetingDetection !== null) {
       return true;
     }
 
-    if (this.isMainWindowFocused()) {
-      return false;
-    }
-
-    if (this.settings.visibility === "always") {
-      return true;
-    }
-
-    // visibility === "while-recording"
-    // Include `stopping` so the pill stays visible through the stop animation
-    // rather than vanishing the instant the user clicks stop.
-    return (
+    // While recording, always show the floating widget and transcript popup on top of desktop
+    const isRecording =
       runtime.state === "starting" ||
       runtime.state === "recording" ||
       runtime.state === "stopping" ||
-      runtime.state === "error"
-    );
+      runtime.state === "error";
+
+    if (isRecording) {
+      return true;
+    }
+
+    return this.settings.visibility === "always";
   }
 
   private isMainWindowFocused(): boolean {
@@ -448,6 +468,11 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       nextState.meetingState === this.state.meetingState &&
       nextState.noteId === this.state.noteId &&
       nextState.edge === this.state.edge &&
+      nextState.showTranscript === this.state.showTranscript &&
+      nextState.transcriptMode === this.state.transcriptMode &&
+      nextState.transcriptFontSize === this.state.transcriptFontSize &&
+      nextState.mutedSources.mic === this.state.mutedSources.mic &&
+      nextState.mutedSources.system === this.state.mutedSources.system &&
       sameDetectionId(nextState.meetingDetection, this.state.meetingDetection)
     ) {
       return false;
@@ -459,6 +484,10 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
     this.state.noteId = nextState.noteId;
     this.state.meetingDetection = nextState.meetingDetection;
     this.state.edge = nextState.edge;
+    this.state.showTranscript = nextState.showTranscript;
+    this.state.transcriptMode = nextState.transcriptMode;
+    this.state.transcriptFontSize = nextState.transcriptFontSize;
+    this.state.mutedSources = { ...nextState.mutedSources };
     this.emit("state-changed", this.getState());
     return true;
   }
@@ -471,4 +500,17 @@ function sameDetectionId(
   if (a === null && b === null) return true;
   if (a === null || b === null) return false;
   return a.id === b.id;
+}
+
+function runtimeMutedSources(runtime: MeetingRuntimeSnapshot) {
+  return runtime.mutedSources ?? { mic: false, system: false };
+}
+
+function isActiveMeetingState(state: MeetingRuntimeSnapshot["state"]): boolean {
+  return (
+    state === "starting" ||
+    state === "recording" ||
+    state === "stopping" ||
+    state === "error"
+  );
 }

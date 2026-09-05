@@ -3,6 +3,7 @@
   --diff-delete: oklch(0.6 0.18 25);
 }
 
+.vnote-diff-insert,
 .prismical-diff-insert {
   color: var(--diff-insert);
   background: color-mix(in oklch, var(--diff-insert) 12%, transparent);
@@ -23,6 +24,7 @@
  * reads as a distinct surface rather than a colored bleed against the
  * surrounding text. The selector targets only `<div>` wrappers — the
  * inline `<span>` variant inherits the base rule above. */
+div.vnote-diff-insert,
 div.prismical-diff-insert {
   padding: 0.5rem 0.75rem;
   border-left: 3px solid var(--diff-insert);
@@ -30,6 +32,7 @@ div.prismical-diff-insert {
   margin: 0.5rem 0;
 }
 
+.vnote-diff-delete,
 .prismical-diff-delete {
   color: var(--diff-delete);
   text-decoration: line-through;
@@ -44,11 +47,14 @@ div.prismical-diff-insert {
  * renders as "Walk##​ throughMock" — words mashed together. A small horizontal
  * gap restores readability without changing the diff semantics.
  */
+.vnote-diff-delete + .vnote-diff-insert,
+.vnote-diff-insert + .vnote-diff-delete,
 .prismical-diff-delete + .prismical-diff-insert,
 .prismical-diff-insert + .prismical-diff-delete {
   margin-left: 0.35em;
 }
 
+.vnote-artifact-node--proposed,
 .prismical-artifact-node--proposed {
   border-color: var(--diff-insert);
   border-style: dashed;

@@ -7,7 +7,10 @@ import type {
   CapturedAudioSource,
   MeetingCaptureMode,
 } from "@/types/meeting";
-import { assertAudioCaptureBinaryExists } from "./audio-capture-binary";
+import {
+  resolveAudioCaptureBinaryCommand,
+  assertAudioCaptureBinaryExists,
+} from "./audio-capture-binary";
 
 const PACKET_HEADER_SIZE = 32;
 const PACKET_VERSION = 1;
@@ -59,10 +62,11 @@ export class NativeAudioCaptureClient extends EventEmitter {
       throw new Error("Native audio capture is already running.");
     }
 
-    const binaryPath = assertAudioCaptureBinaryExists();
+    const { executable, args } = resolveAudioCaptureBinaryCommand(mode, options);
 
-    logger.audio.info("Starting native audio capture", {
-      binaryPath,
+    logger.audio.info("Starting audio capture", {
+      executable,
+      args,
       mode,
       debugArtifactsDir: options?.debugArtifactsDir,
       aecRenderHoldbackMs: options?.aecRenderHoldbackMs,
@@ -71,25 +75,10 @@ export class NativeAudioCaptureClient extends EventEmitter {
 
     this.pending = Buffer.alloc(0);
     this.stderrPending = "";
-    const args = ["--mode", mode];
-    if (options?.debugArtifactsDir) {
-      args.push("--debug-artifacts-dir", options.debugArtifactsDir);
-    }
-    if (options?.aecRenderHoldbackMs != null) {
-      args.push(
-        "--aec-render-holdback-ms",
-        String(options.aecRenderHoldbackMs),
-      );
-    }
-    if (options?.aecRenderWaitTimeoutMs != null) {
-      args.push(
-        "--aec-render-wait-timeout-ms",
-        String(options.aecRenderWaitTimeoutMs),
-      );
-    }
 
-    const captureProcess = spawn(binaryPath, args, {
+    const captureProcess = spawn(executable, args, {
       stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
     });
     this.process = captureProcess;
 
@@ -194,8 +183,11 @@ export class NativeAudioCaptureClient extends EventEmitter {
     const sampleRate = header.readUInt32LE(4);
     const sequenceNum = header.readUInt32LE(8);
     const durationMs = header.readUInt32LE(12);
-    const timestampMs = Number(header.readBigUInt64LE(16));
     const sampleStartIndex = header.readUInt32LE(28);
+    let timestampMs = Number(header.readBigUInt64LE(16));
+    if (timestampMs > 1000000000) {
+      timestampMs = Math.round((sampleStartIndex / sampleRate) * 1000);
+    }
 
     if (version !== PACKET_VERSION) {
       throw new Error(`Unsupported audio packet version: ${version}`);

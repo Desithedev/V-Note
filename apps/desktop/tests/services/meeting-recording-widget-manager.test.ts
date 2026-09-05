@@ -1,5 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+
+vi.mock("electron", () => {
+  const { EventEmitter } = require("node:events");
+  const app = Object.assign(new EventEmitter(), {
+    isPackaged: false,
+    getPath: vi.fn(() => ""),
+    getVersion: vi.fn(() => "0.1.0"),
+  });
+  return {
+    app,
+    ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
+  };
+});
+
 import { MeetingRecordingWidgetManager } from "../../src/main/managers/meeting-recording-widget-manager";
 import type { MeetingStartNotificationPayload } from "../../src/types/meeting-start-notifications";
 import type { MeetingWidgetSettings } from "../../src/services/settings-service";
@@ -13,7 +27,14 @@ class FakeMeetingManager extends EventEmitter {
 
 class FakeSettingsService extends EventEmitter {
   async getMeetingWidgetSettings(): Promise<MeetingWidgetSettings> {
-    return { visibility: "always", edge: "right", normalizedPosition: 0.5 };
+    return {
+      visibility: "always",
+      edge: "right",
+      normalizedPosition: 0.5,
+      showTranscript: true,
+      transcriptMode: "full",
+      transcriptFontSize: "sm",
+    };
   }
 }
 
@@ -28,6 +49,7 @@ function createManager() {
     getMeetingWidgetWindow: vi.fn(() => null),
     updateMeetingWidgetWindowPositionFree: vi.fn(() => null),
     snapMeetingWidgetToEdge: vi.fn(() => null),
+    setMeetingWidgetPopupOpen: vi.fn(),
   };
   const manager = new MeetingRecordingWidgetManager({
     settingsService: settingsService as any,
@@ -96,6 +118,9 @@ describe("MeetingRecordingWidgetManager visibility with detection", () => {
       visibility: "while-recording" as const,
       edge: "right" as const,
       normalizedPosition: 0.5,
+      showTranscript: true,
+      transcriptMode: "full",
+      transcriptFontSize: "sm",
     });
     await manager.start();
 

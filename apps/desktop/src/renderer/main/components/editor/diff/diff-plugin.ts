@@ -13,7 +13,7 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { DecorationSet } from "@tiptap/pm/view";
 
 export const skillDiffPluginKey = new PluginKey<DecorationSet>(
-  "prismical-skill-diff",
+  "vnote-skill-diff",
 );
 
 type Meta = { decorations: DecorationSet } | "clear";

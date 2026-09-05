@@ -26,7 +26,7 @@ const Contact = () => {
             Contact Us
           </h1>
           <p className="text-lg text-muted-foreground">
-            Get in touch with the authors of Prismical for any questions or support.
+            Get in touch with the authors of V-Note for any questions or support.
           </p>
         </div>
         <div className="flex justify-center">

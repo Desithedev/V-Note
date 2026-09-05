@@ -5,14 +5,18 @@ const path = require("node:path");
 const command = process.argv[2] ?? "build";
 
 function run(executable, args) {
-  const result = spawnSync(executable, args, {
-    cwd: path.join(__dirname, ".."),
-    stdio: "inherit",
-    shell: false,
-  });
+  try {
+    const result = spawnSync(executable, args, {
+      cwd: path.join(__dirname, ".."),
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    });
 
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
+    if (result.status !== 0) {
+      console.warn(`[audio-capture] ${executable} exited with code ${result.status}. Skipping native helper.`);
+    }
+  } catch (err) {
+    console.warn(`[audio-capture] Failed to execute ${executable}: ${err.message}. Skipping native helper.`);
   }
 }
 

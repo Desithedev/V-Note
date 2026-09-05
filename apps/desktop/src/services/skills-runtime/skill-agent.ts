@@ -67,25 +67,81 @@ export async function runSkillAgent(
   const tools: ToolSet = await resolveTools(args.skill);
 
   if (Object.keys(tools).length === 0) {
-    const result = await generateText({
-      model: args.model,
-      system: args.systemPrompt,
-      prompt: "Run the skill as instructed in the system prompt.",
-      output: Output.object({ schema: OUTPUT_SCHEMA }),
-      abortSignal: args.signal,
-      providerOptions: args.providerOptions,
-    });
-    return {
-      output: result.output,
-      usage: result.usage,
-      providerMetadata: result.providerMetadata,
-    };
+    try {
+      const result = await generateText({
+        model: args.model,
+        system: args.systemPrompt,
+        prompt: "Run the skill as instructed in the system prompt.",
+        output: Output.object({ schema: OUTPUT_SCHEMA }),
+        abortSignal: args.signal,
+        providerOptions: args.providerOptions,
+      });
+      return {
+        output: result.output,
+        usage: result.usage,
+        providerMetadata: result.providerMetadata,
+      };
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const isStructuredOutputError =
+        errMsg.toLowerCase().includes("structured output") ||
+        errMsg.toLowerCase().includes("json_schema") ||
+        errMsg.toLowerCase().includes("response_format") ||
+        errMsg.toLowerCase().includes("not support") ||
+        errMsg.toLowerCase().includes("unsupported");
+
+      if (isStructuredOutputError) {
+        logger.pipeline.warn(
+          "Model does not support strict structured outputs, falling back to prompt-guided JSON mode",
+          { error: errMsg },
+        );
+
+        const fallbackSystem = `${args.systemPrompt}\n\nIMPORTANT: Return ONLY a valid JSON object with the exact keys: {"markdown": "your generated markdown content here", "reasoning": null}. Do NOT include explanations outside the JSON.`;
+        const textResult = await generateText({
+          model: args.model,
+          system: fallbackSystem,
+          prompt: "Run the skill as instructed in the system prompt and return the JSON object.",
+          abortSignal: args.signal,
+          providerOptions: args.providerOptions,
+        });
+
+        let rawText = textResult.text.trim();
+        if (rawText.startsWith("```json")) {
+          rawText = rawText.slice(7);
+        } else if (rawText.startsWith("```")) {
+          rawText = rawText.slice(3);
+        }
+        if (rawText.endsWith("```")) {
+          rawText = rawText.slice(0, -3);
+        }
+        rawText = rawText.trim();
+
+        try {
+          const parsed = JSON.parse(rawText);
+          const validated = OUTPUT_SCHEMA.parse(parsed);
+          return {
+            output: validated,
+            usage: textResult.usage,
+            providerMetadata: textResult.providerMetadata,
+          };
+        } catch {
+          // If JSON.parse fails, treat entire text as markdown
+          return {
+            output: {
+              markdown: textResult.text.trim() || rawText,
+              reasoning: null,
+            },
+            usage: textResult.usage,
+            providerMetadata: textResult.providerMetadata,
+          };
+        }
+      }
+
+      throw err;
+    }
   }
 
-  // Future: tool-loop path. ToolLoopAgent supports `output` so the
-  // structured-output contract holds across multiple tool-result turns.
-  // System prompt goes in `instructions`; providerOptions lives on the
-  // constructor settings (it's part of CallSettings on the agent).
+  // Tool-loop path
   logger.pipeline.info("Running skill via ToolLoopAgent", {
     skill: args.skill.slug,
     toolNames: Object.keys(tools),
@@ -96,7 +152,6 @@ export async function runSkillAgent(
     tools,
     output: Output.object({ schema: OUTPUT_SCHEMA }),
     providerOptions: args.providerOptions,
-    // stopWhen defaults to stepCountIs(20) per the SDK.
   });
   const result = await agent.generate({
     prompt: "Run the skill as instructed.",

@@ -20,14 +20,14 @@ export async function generateMetadata(props: {
 
   return {
     title: {
-      absolute: `${page.data.title} | Prismical`,
+      absolute: `${page.data.title} | V-Note`,
     },
     description:
-      page.data.description ?? "A blog about Prismical, Productivity and AI",
+      page.data.description ?? "A blog about V-Note, Productivity and AI",
     openGraph: {
       title: `${page.data.title}`,
       description:
-        page.data.description ?? "A blog about Prismical, Productivity and AI",
+        page.data.description ?? "A blog about V-Note, Productivity and AI",
       type: "article",
       images: page.data.image ? [{ url: page.data.image }] : undefined,
     },
@@ -35,7 +35,7 @@ export async function generateMetadata(props: {
       card: "summary_large_image",
       title: `${page.data.title}`,
       description:
-        page.data.description ?? "A blog about Prismical, Productivity and AI",
+        page.data.description ?? "A blog about V-Note, Productivity and AI",
       images: page.data.image ? [page.data.image] : undefined,
     },
   };

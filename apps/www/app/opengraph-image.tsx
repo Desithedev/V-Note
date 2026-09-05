@@ -6,7 +6,7 @@ import { readFileSync } from "fs";
 export const runtime = "nodejs";
 export const dynamic = "force-static";
 
-export const alt = "Prismical - Open Source AI Dictation App";
+export const alt = "V-Note - Open Source AI Dictation App";
 export const size = {
   width: 1200,
   height: 630,
@@ -39,7 +39,7 @@ export default async function Image() {
       >
         <img
           src={logoBase64}
-          alt="Prismical Logo"
+          alt="V-Note Logo"
           style={{
             width: "400px",
             marginBottom: "32px",

@@ -46,13 +46,16 @@ export function useMeetingLevel(): MeetingLevels {
 //
 // Tune NOISE_FLOOR up if room noise lights the bars; tune SATURATION
 // down if normal conversation doesn't pin them.
-const NOISE_FLOOR = 0.05;
-const SATURATION = 0.1;
+const NOISE_FLOOR = 0.003;
+const SATURATION = 0.05;
 
 export function combinedLevel(levels: MeetingLevels): number {
   const raw = Math.max(levels.mic, levels.system);
   if (raw <= NOISE_FLOOR) return 0;
-  const normalized = (raw - NOISE_FLOOR) / (SATURATION - NOISE_FLOOR);
+  const normalized = Math.min(
+    1,
+    Math.max(0, (raw - NOISE_FLOOR) / (SATURATION - NOISE_FLOOR)),
+  );
   // sqrt() pushes the lower half of the post-threshold range up so even
   // soft speech reads as near-max. Combined with the tight saturation
   // window above, this makes the bars binary-ish: silent below floor,

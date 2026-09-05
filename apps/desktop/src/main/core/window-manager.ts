@@ -8,17 +8,25 @@ import type { MeetingWidgetEdge } from "../../types/meeting-widget";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
+declare const ONBOARDING_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const ONBOARDING_WINDOW_VITE_NAME: string;
+declare const RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const RECORDING_WIDGET_WINDOW_VITE_NAME: string;
 
 export class WindowManager {
   private static readonly MEETING_WIDGET_WINDOW_WIDTH = 380 as const;
   private static readonly MEETING_WIDGET_WINDOW_HEIGHT = 240 as const;
+  private static readonly MEETING_WIDGET_POPUP_WINDOW_WIDTH = 456 as const;
+  private static readonly MEETING_WIDGET_POPUP_WINDOW_HEIGHT = 480 as const;
   private static readonly MEETING_WIDGET_EDGE_MARGIN = 6 as const;
   private static readonly MEETING_WIDGET_PARALLEL_MARGIN = 24 as const;
   private mainWindow: BrowserWindow | null = null;
   private onboardingWindow: BrowserWindow | null = null;
   private meetingWidgetWindow: BrowserWindow | null = null;
+  private meetingWidgetPopupOpen = false;
+  private meetingWidgetEdge: MeetingWidgetEdge = "right";
+  private meetingWidgetNormalizedPosition = 0.5;
+  private meetingWidgetDisplayPoint: Electron.Point | null = null;
   private themeListenerSetup: boolean = false;
 
   private getTrafficLightPosition(): { x: number; y: number } {
@@ -32,40 +40,66 @@ export class WindowManager {
     edge: MeetingWidgetEdge = "right",
     normalizedPosition: number = 0.5,
     displayPoint: Electron.Point = screen.getCursorScreenPoint(),
+    popupOpen: boolean = this.meetingWidgetPopupOpen,
   ): Electron.Rectangle {
     const display = screen.getDisplayNearestPoint(displayPoint);
     const workArea = display.workArea;
-    const width = Math.min(
-      WindowManager.MEETING_WIDGET_WINDOW_WIDTH,
-      workArea.width,
-    );
-    const height = Math.min(
-      WindowManager.MEETING_WIDGET_WINDOW_HEIGHT,
-      workArea.height,
-    );
+    const requestedWidth =
+      popupOpen
+        ? WindowManager.MEETING_WIDGET_POPUP_WINDOW_WIDTH
+        : WindowManager.MEETING_WIDGET_WINDOW_WIDTH;
+    const requestedHeight =
+      popupOpen
+        ? WindowManager.MEETING_WIDGET_POPUP_WINDOW_HEIGHT
+        : WindowManager.MEETING_WIDGET_WINDOW_HEIGHT;
+    const width = Math.min(requestedWidth, workArea.width);
+    const height = Math.min(requestedHeight, workArea.height);
     const edgeMargin = WindowManager.MEETING_WIDGET_EDGE_MARGIN;
     const parallelMargin = WindowManager.MEETING_WIDGET_PARALLEL_MARGIN;
     const clamped = clampNormalizedPosition(normalizedPosition);
 
     if (edge === "right") {
-      const minY = workArea.y + parallelMargin;
-      const maxY = workArea.y + workArea.height - height - parallelMargin;
-      const y =
-        maxY <= minY ? minY : Math.round(minY + (maxY - minY) * clamped);
+      const compactHeight = Math.min(
+        WindowManager.MEETING_WIDGET_WINDOW_HEIGHT,
+        workArea.height,
+      );
+      const minAnchorY = workArea.y + parallelMargin + compactHeight / 2;
+      const maxAnchorY =
+        workArea.y + workArea.height - parallelMargin - compactHeight / 2;
+      const anchorY =
+        maxAnchorY <= minAnchorY
+          ? workArea.y + workArea.height / 2
+          : Math.round(minAnchorY + (maxAnchorY - minAnchorY) * clamped);
       return {
         x: workArea.x + workArea.width - width - edgeMargin,
-        y,
+        y: clamp(
+          Math.round(anchorY - height / 2),
+          workArea.y,
+          workArea.y + workArea.height - height,
+        ),
         width,
         height,
       };
     }
 
     // edge === "bottom"
-    const minX = workArea.x + parallelMargin;
-    const maxX = workArea.x + workArea.width - width - parallelMargin;
-    const x = maxX <= minX ? minX : Math.round(minX + (maxX - minX) * clamped);
+    const compactWidth = Math.min(
+      WindowManager.MEETING_WIDGET_WINDOW_WIDTH,
+      workArea.width,
+    );
+    const minAnchorX = workArea.x + parallelMargin + compactWidth / 2;
+    const maxAnchorX =
+      workArea.x + workArea.width - parallelMargin - compactWidth / 2;
+    const anchorX =
+      maxAnchorX <= minAnchorX
+        ? workArea.x + workArea.width / 2
+        : Math.round(minAnchorX + (maxAnchorX - minAnchorX) * clamped);
     return {
-      x,
+      x: clamp(
+        Math.round(anchorX - width / 2),
+        workArea.x,
+        workArea.x + workArea.width - width,
+      ),
       y: workArea.y + workArea.height - height - edgeMargin,
       width,
       height,
@@ -210,6 +244,7 @@ export class WindowManager {
         preload: path.join(__dirname, "preload.js"),
         nodeIntegration: false,
         contextIsolation: true,
+        spellcheck: false,
       },
     });
 
@@ -338,17 +373,29 @@ export class WindowManager {
     edge: MeetingWidgetEdge = "right",
     normalizedPosition: number = 0.5,
   ): Promise<void> {
-    const bounds = this.getMeetingWidgetWindowBounds(edge, normalizedPosition);
+    this.meetingWidgetEdge = edge;
+    this.meetingWidgetNormalizedPosition = clampNormalizedPosition(normalizedPosition);
+
+    const displayPoint = this.meetingWidgetDisplayPoint ?? screen.getCursorScreenPoint();
+    this.meetingWidgetDisplayPoint = displayPoint;
+    const bounds = this.getMeetingWidgetWindowBounds(
+      edge,
+      this.meetingWidgetNormalizedPosition,
+      displayPoint,
+    );
 
     if (this.meetingWidgetWindow && !this.meetingWidgetWindow.isDestroyed()) {
       this.meetingWidgetWindow.setBounds(bounds);
-      this.meetingWidgetWindow.showInactive();
+      this.meetingWidgetWindow.show();
+      this.meetingWidgetWindow.setAlwaysOnTop(true, "screen-saver", 1);
+      this.meetingWidgetWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      this.meetingWidgetWindow.moveTop();
       return;
     }
 
     this.meetingWidgetWindow = new BrowserWindow({
       ...bounds,
-      show: false,
+      show: true,
       frame: false,
       transparent: true,
       backgroundColor: "#00000000",
@@ -371,21 +418,21 @@ export class WindowManager {
       },
     });
 
-    if (process.platform === "darwin") {
-      this.meetingWidgetWindow.setAlwaysOnTop(true, "floating", 2);
-      this.meetingWidgetWindow.setVisibleOnAllWorkspaces(true, {
-        visibleOnFullScreen: true,
-      });
-      this.meetingWidgetWindow.setHiddenInMissionControl(true);
-    }
-
-    this.meetingWidgetWindow.setIgnoreMouseEvents(true, { forward: true });
+    this.meetingWidgetWindow.setAlwaysOnTop(true, "screen-saver", 1);
+    this.meetingWidgetWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    this.meetingWidgetWindow.moveTop();
 
     this.meetingWidgetWindow.once("ready-to-show", () => {
-      this.meetingWidgetWindow?.showInactive();
+      this.meetingWidgetWindow?.show();
+      this.meetingWidgetWindow?.setAlwaysOnTop(true, "screen-saver", 1);
+      this.meetingWidgetWindow?.moveTop();
     });
 
-    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    if (typeof RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL !== "undefined" && RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL) {
+      const devUrl = new URL(RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL);
+      devUrl.pathname = "recording-widget.html";
+      this.meetingWidgetWindow.loadURL(devUrl.toString());
+    } else if (typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined" && MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       const devUrl = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
       devUrl.pathname = "recording-widget.html";
       this.meetingWidgetWindow.loadURL(devUrl.toString());
@@ -404,6 +451,7 @@ export class WindowManager {
 
     this.meetingWidgetWindow.on("closed", () => {
       this.meetingWidgetWindow = null;
+      this.meetingWidgetDisplayPoint = null;
     });
 
     this.trpcHandler.attachWindow(this.meetingWidgetWindow);
@@ -411,6 +459,32 @@ export class WindowManager {
     logger.main.info("Meeting recording widget window created", {
       bounds,
     });
+  }
+
+  setMeetingWidgetPopupOpen(open: boolean): void {
+    if (this.meetingWidgetPopupOpen === open) {
+      return;
+    }
+
+    this.meetingWidgetPopupOpen = open;
+    if (!this.meetingWidgetWindow || this.meetingWidgetWindow.isDestroyed()) {
+      return;
+    }
+
+    const currentBounds = this.meetingWidgetWindow.getBounds();
+    const displayPoint = this.meetingWidgetDisplayPoint ?? {
+      x: currentBounds.x + currentBounds.width / 2,
+      y: currentBounds.y + currentBounds.height / 2,
+    };
+    this.meetingWidgetDisplayPoint = displayPoint;
+    this.meetingWidgetWindow.setBounds(
+      this.getMeetingWidgetWindowBounds(
+        this.meetingWidgetEdge,
+        this.meetingWidgetNormalizedPosition,
+        displayPoint,
+        open,
+      ),
+    );
   }
 
   hideMeetingWidgetWindow(): void {
@@ -452,6 +526,7 @@ export class WindowManager {
     const targetX = Math.round(screenX - pointerOffsetX);
     const targetY = Math.round(screenY - pointerOffsetY);
     const display = screen.getDisplayNearestPoint({ x: screenX, y: screenY });
+    this.meetingWidgetDisplayPoint = { x: screenX, y: screenY };
     const workArea = display.workArea;
     const x = clamp(
       targetX,
@@ -483,14 +558,12 @@ export class WindowManager {
     }
 
     const bounds = this.meetingWidgetWindow.getBounds();
-    // Use the window's center to choose nearest edge and derive
-    // normalizedPosition from the window's current bounds — this preserves
-    // the pointer-offset grip that the user established at drag-start, so
-    // the widget snaps to where it visually ended, not where the cursor
-    // released.
+    // Dragging is performed in the compact layout, so the window center is
+    // also the pill anchor used for edge selection and persistence.
     const centerX = bounds.x + bounds.width / 2;
     const centerY = bounds.y + bounds.height / 2;
     const display = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+    this.meetingWidgetDisplayPoint = { x: centerX, y: centerY };
     const workArea = display.workArea;
     const distanceToRight = Math.max(
       0,
@@ -507,28 +580,32 @@ export class WindowManager {
     let normalizedPosition: number;
 
     if (edge === "right") {
-      const minY = workArea.y + parallelMargin;
+      const minY = workArea.y + parallelMargin + bounds.height / 2;
       const maxY =
-        workArea.y + workArea.height - bounds.height - parallelMargin;
+        workArea.y + workArea.height - parallelMargin - bounds.height / 2;
       normalizedPosition =
         maxY <= minY
           ? 0.5
-          : clampNormalizedPosition((bounds.y - minY) / (maxY - minY));
+          : clampNormalizedPosition((centerY - minY) / (maxY - minY));
     } else {
-      const minX = workArea.x + parallelMargin;
+      const minX = workArea.x + parallelMargin + bounds.width / 2;
       const maxX =
-        workArea.x + workArea.width - bounds.width - parallelMargin;
+        workArea.x + workArea.width - parallelMargin - bounds.width / 2;
       normalizedPosition =
         maxX <= minX
           ? 0.5
-          : clampNormalizedPosition((bounds.x - minX) / (maxX - minX));
+          : clampNormalizedPosition((centerX - minX) / (maxX - minX));
     }
 
     const target = this.getMeetingWidgetWindowBounds(
       edge,
       normalizedPosition,
       { x: centerX, y: centerY },
+      false,
     );
+    this.meetingWidgetPopupOpen = false;
+    this.meetingWidgetEdge = edge;
+    this.meetingWidgetNormalizedPosition = normalizedPosition;
     this.meetingWidgetWindow.setBounds(target);
     return { edge, normalizedPosition };
   }

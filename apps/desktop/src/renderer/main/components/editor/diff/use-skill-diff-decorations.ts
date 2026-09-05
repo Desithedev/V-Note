@@ -75,7 +75,7 @@ export function useSkillDiffDecorations(
       requestAnimationFrame(() => {
         if (editor.isDestroyed) return;
         const firstInsert = editor.view.dom.querySelector(
-          ".prismical-diff-insert",
+          ".vnote-diff-insert, .prismical-diff-insert",
         );
         firstInsert?.scrollIntoView({ behavior: "smooth", block: "start" });
       });

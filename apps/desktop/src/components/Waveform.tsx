@@ -12,28 +12,24 @@ interface WaveformProps {
 }
 
 // Per-bar height factor — gives the row a "mountain" silhouette.
-const BAR_FACTORS = [0.6, 0.85, 1.0, 1.0, 0.85, 0.6];
+const BAR_FACTORS = [0.65, 0.9, 1.15, 1.15, 0.9, 0.65];
 
-// Below this normalised level we settle to a single height with no wave —
-// keeps quiet bars visibly flat rather than oscillating around silent.
-const WAVE_THRESHOLD = 0.05;
+// Below this normalised level we settle to a gentle idle wave —
+// keeps bars visibly listening rather than dead flat.
+const WAVE_THRESHOLD = 0.01;
 
-// Module-level constants so framer-motion sees stable references across
-// renders. Recreating the keyframe array on every render is what was
-// causing the flicker — framer-motion was restarting the animation each
-// time.
-const SCALE_WAVE = [1, 1.2, 1, 0.8, 1];
-const SCALE_FLAT = 1;
+const SCALE_WAVE = [1, 1.35, 1, 0.75, 1];
+const SCALE_IDLE = [1, 1.15, 1, 0.9, 1];
 
 export function Waveform({
   index,
   isRecording,
   level,
-  baseHeight = 60,
-  silentHeight = 20,
+  baseHeight = 85,
+  silentHeight = 25,
 }: WaveformProps) {
   if (!isRecording) {
-    return <div className="h-[15%] w-1 rounded-full bg-white" />;
+    return <div className="h-[20%] w-1 rounded-full bg-white/40" />;
   }
 
   const factor = BAR_FACTORS[index % BAR_FACTORS.length] ?? 1;
@@ -44,25 +40,25 @@ export function Waveform({
 
   return (
     <motion.div
-      className="w-1 rounded-full bg-white"
+      className={`w-1 rounded-full transition-colors duration-150 ${
+        isWaving
+          ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+          : "bg-white/80"
+      }`}
       animate={{
-        // Envelope: smooth single-value tween. Changes with level. No
-        // keyframe restart concerns because it's just a target.
+        // Envelope: smooth single-value tween. Changes with level.
         height: `${center}%`,
-        // Wave: fixed keyframes that never change, so the scaleY animation
-        // keeps looping cleanly even as height transitions to new levels.
-        scaleY: isWaving ? SCALE_WAVE : SCALE_FLAT,
+        // Wave: fixed keyframes that animate dynamically when speech is present
+        scaleY: isWaving ? SCALE_WAVE : SCALE_IDLE,
       }}
       transition={{
-        height: { duration: 0.15, ease: "easeOut" },
+        height: { duration: 0.1, ease: "easeOut" },
         scaleY: {
-          duration: 0.9,
+          duration: isWaving ? 0.6 : 1.2,
           ease: "easeInOut",
-          repeat: isWaving ? Number.POSITIVE_INFINITY : 0,
+          repeat: Number.POSITIVE_INFINITY,
           repeatType: "loop",
-          // Per-bar phase offset creates a traveling-wave look across the
-          // row — adjacent bars peak at slightly different times.
-          delay: isWaving ? index * 0.08 : 0,
+          delay: index * 0.08,
         },
       }}
     />

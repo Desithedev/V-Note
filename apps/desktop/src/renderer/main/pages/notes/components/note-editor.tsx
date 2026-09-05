@@ -153,6 +153,9 @@ export function NoteEditor({
           class:
             "min-h-[500px] px-4 py-2 outline-none text-base leading-normal text-note-foreground selection:bg-indigo-500/20",
           "aria-placeholder": placeholder,
+          spellcheck: "false",
+          autocorrect: "off",
+          autocapitalize: "off",
         },
         // Pulse the dock bar when a user tries to edit under a staged
         // candidate. The lock extension silently blocks the mutation;
@@ -232,7 +235,7 @@ export function NoteEditor({
     <div className="relative">
       <EditorContent editor={editor} />
       {editor ? (
-        <DragHandle editor={editor} className="prismical-drag-handle">
+        <DragHandle editor={editor} className="vnote-drag-handle">
           <GripVertical className="size-3" />
         </DragHandle>
       ) : null}

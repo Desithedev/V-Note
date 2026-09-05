@@ -48,6 +48,11 @@ const OpenAICompatibleConfigSchema = z.object({
   // (t-19) Optional user-set flag — see OpenAICompatibleConfig comment.
   supportsStrictJsonSchema: z.boolean().optional(),
 });
+const PhoVoiceConfigSchema = z.object({
+  baseURL: z.string().url("Must be a valid URL"),
+  apiKey: z.string().optional(),
+  mode: z.enum(["cloud", "local"]).optional(),
+});
 const EmptyConfigSchema = z.object({}).strict();
 
 // `LocalWhisperDownloadedModel` entries are written by the download
@@ -90,6 +95,8 @@ function parseConfigForProvider(
       return OllamaConfigSchema.parse(raw);
     case PROVIDER_TYPES.openAICompatible:
       return OpenAICompatibleConfigSchema.parse(raw);
+    case PROVIDER_TYPES.phovoice:
+      return PhoVoiceConfigSchema.parse(raw);
     case PROVIDER_TYPES.localWhisper:
       // Bootstrap seeds local-whisper with `{downloadedModels: []}`. The user
       // never edits this via the instance UI; the download manager owns it.

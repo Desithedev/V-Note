@@ -5,9 +5,11 @@ import * as crypto from "crypto";
 import { app } from "electron";
 import {
   AvailableWhisperModel,
+  AvailablePhoVoiceModel,
   DownloadProgress,
   ModelManagerState,
   AVAILABLE_MODELS,
+  AVAILABLE_PHOVOICE_MODELS,
 } from "../constants/models";
 import {
   PROVIDER_TYPES,
@@ -163,6 +165,14 @@ class ModelService extends EventEmitter {
     const config = await this.readLocalWhisperConfig();
     const out: Record<string, LocalWhisperDownloadedModel> = {};
     for (const entry of config.downloadedModels) out[entry.id] = entry;
+    if (this.isPhoVoiceModelDownloaded()) {
+      out["phovoice-vietnamese-standard"] = {
+        id: "phovoice-vietnamese-standard",
+        filename: "phovoice",
+        sizeBytes: 150 * 1024 * 1024,
+        downloadedAt: new Date().toISOString(),
+      };
+    }
     return out;
   }
 
@@ -174,6 +184,9 @@ class ModelService extends EventEmitter {
   }
 
   async isModelDownloaded(modelId: string): Promise<boolean> {
+    if (modelId === "phovoice-vietnamese-standard" || modelId.startsWith("phovoice")) {
+      return this.isPhoVoiceModelDownloaded(modelId);
+    }
     const downloaded = await this.getDownloadedModels();
     return Object.prototype.hasOwnProperty.call(downloaded, modelId);
   }
@@ -204,6 +217,9 @@ class ModelService extends EventEmitter {
   }
 
   async downloadModel(modelId: string): Promise<void> {
+    if (modelId === "phovoice-vietnamese-standard" || modelId.startsWith("phovoice")) {
+      return this.downloadPhoVoiceModel(modelId);
+    }
     const model = AVAILABLE_MODELS.find((m) => m.id === modelId);
     if (!model) throw new Error(`Model not found: ${modelId}`);
 
@@ -471,6 +487,17 @@ class ModelService extends EventEmitter {
   }
 
   async setSelectedModel(modelId: string | null): Promise<void> {
+    if (modelId === "phovoice-vietnamese-standard" || modelId?.startsWith("phovoice")) {
+      const phovoiceId =
+        SINGLETON_INSTANCE_IDS[PROVIDER_TYPES.phovoice] ?? "system-phovoice";
+      await this.settingsService.setDefault("transcription", {
+        instanceId: phovoiceId,
+        modelId: "68M",
+      });
+      this.emit("selection-changed", null, modelId, "manual");
+      return;
+    }
+
     if (modelId !== null) {
       // Validate the model is known and downloaded.
       const known = AVAILABLE_MODELS.find((m) => m.id === modelId);
@@ -506,6 +533,140 @@ class ModelService extends EventEmitter {
       }
     }
     return null;
+  }
+
+  // ---------- PhoVoice Local Model Manager ----------
+
+  getPhoVoiceModelsDirectory(): string {
+    const dir = path.join(app.getPath("userData"), "models", "phovoice");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    return dir;
+  }
+
+  isPhoVoiceModelDownloaded(modelId: string = "phovoice-vietnamese-standard"): boolean {
+    const model = AVAILABLE_PHOVOICE_MODELS.find((m) => m.id === modelId);
+    if (!model) return false;
+    const baseDir = this.getPhoVoiceModelsDirectory();
+
+    for (const f of model.files) {
+      const fullPath = path.join(baseDir, f.subfolder, f.filename);
+      if (!fs.existsSync(fullPath) || fs.statSync(fullPath).size < 1000) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async downloadPhoVoiceModel(modelId: string = "phovoice-vietnamese-standard"): Promise<void> {
+    const model = AVAILABLE_PHOVOICE_MODELS.find((m) => m.id === modelId);
+    if (!model) throw new Error(`PhoVoice Model not found: ${modelId}`);
+
+    if (this.isPhoVoiceModelDownloaded(modelId)) {
+      logger.main.info("PhoVoice Model is already downloaded and ready", { modelId });
+      return;
+    }
+
+    if (this.state.activeDownloads.has(modelId)) {
+      throw new Error(`Download already in progress for ${modelId}`);
+    }
+
+    const abortController = new AbortController();
+    const baseDir = this.getPhoVoiceModelsDirectory();
+
+    const progress: DownloadProgress = {
+      modelId,
+      progress: 0,
+      status: "downloading",
+      bytesDownloaded: 0,
+      totalBytes: model.size,
+      abortController,
+    };
+
+    this.state.activeDownloads.set(modelId, progress);
+    this.emit("download-progress", modelId, progress);
+
+    try {
+      let overallDownloaded = 0;
+      const localCandidates = [
+        "d:/Code/sherpa-vietnamese-asr/models",
+        "d:/Code/phovoice/models",
+        path.join(process.cwd(), "models"),
+      ];
+
+      for (const f of model.files) {
+        const destDir = path.join(baseDir, f.subfolder);
+        fs.mkdirSync(destDir, { recursive: true });
+        const destPath = path.join(destDir, f.filename);
+
+        if (fs.existsSync(destPath) && fs.statSync(destPath).size > 1000) {
+          overallDownloaded += fs.statSync(destPath).size;
+          progress.bytesDownloaded = overallDownloaded;
+          progress.progress = Math.min(99, Math.round((overallDownloaded / model.size) * 100));
+          this.emit("download-progress", modelId, progress);
+          continue;
+        }
+
+        // Fast local seed check
+        let copiedLocally = false;
+        for (const candBase of localCandidates) {
+          const localSrc = path.join(candBase, f.subfolder, f.filename);
+          if (fs.existsSync(localSrc) && fs.statSync(localSrc).size > 1000) {
+            try {
+              fs.copyFileSync(localSrc, destPath);
+              overallDownloaded += fs.statSync(destPath).size;
+              progress.bytesDownloaded = overallDownloaded;
+              progress.progress = Math.min(99, Math.round((overallDownloaded / model.size) * 100));
+              this.emit("download-progress", modelId, progress);
+              copiedLocally = true;
+              break;
+            } catch {}
+          }
+        }
+
+        if (copiedLocally) continue;
+
+        const res = await fetch(f.url, {
+          signal: abortController.signal,
+          headers: { "User-Agent": getUserAgent() },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed to download ${f.filename}: HTTP ${res.status}`);
+        }
+
+        const fileStream = fs.createWriteStream(destPath);
+        const reader = res.body?.getReader();
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) {
+              fileStream.write(Buffer.from(value));
+              overallDownloaded += value.length;
+              progress.bytesDownloaded = overallDownloaded;
+              progress.progress = Math.min(99, Math.round((overallDownloaded / model.size) * 100));
+              this.emit("download-progress", modelId, progress);
+            }
+          }
+        }
+        await new Promise((resolve) => fileStream.end(resolve));
+      }
+
+      progress.progress = 100;
+      this.state.activeDownloads.delete(modelId);
+      this.emit("download-progress", modelId, { ...progress, progress: 100 });
+      logger.main.info("PhoVoice Model downloaded successfully!", { modelId });
+
+      // Automatically trigger local engine start once model is in place
+      const { phovoiceLocalService } = await import("../main/services/phovoice-local-service");
+      await phovoiceLocalService.startEngine();
+    } catch (error) {
+      this.state.activeDownloads.delete(modelId);
+      logger.main.error("Failed to download PhoVoice Model:", error);
+      throw error;
+    }
   }
 
   // ---------- Lifecycle ----------

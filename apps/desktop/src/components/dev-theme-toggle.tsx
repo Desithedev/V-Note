@@ -8,6 +8,9 @@ import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 export function DevThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const updateUIThemeMutation = api.settings.updateUITheme.useMutation();
+  const appVersionQuery = api.settings.getAppVersion.useQuery(undefined, {
+    staleTime: Infinity,
+  });
 
   const effectiveTheme = resolvedTheme ?? theme;
   const isDark = effectiveTheme === "dark";
@@ -20,10 +23,20 @@ export function DevThemeToggle() {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton onClick={toggleTheme}>
-        {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+      <SidebarMenuButton
+        onClick={toggleTheme}
+        className="cursor-pointer transition-colors"
+      >
+        {isDark ? (
+          <Sun className="size-4 text-amber-400" />
+        ) : (
+          <Moon className="size-4 text-indigo-500" />
+        )}
+        <span>{isDark ? "Chế độ Sáng" : "Chế độ Tối"}</span>
       </SidebarMenuButton>
+      <div className="px-2 pt-1 text-[10px] font-medium tracking-wide text-muted-foreground/70 group-data-[collapsible=icon]:hidden">
+        Phiên bản {appVersionQuery.data ?? "0.1.6"}
+      </div>
     </SidebarMenuItem>
   );
 }

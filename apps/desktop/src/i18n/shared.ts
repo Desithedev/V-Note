@@ -1,11 +1,15 @@
 import type { InitOptions } from "i18next";
 import en from "./locales/en.json";
+import vi from "./locales/vi.json";
 import es from "./locales/es.json";
 import ja from "./locales/ja.json";
 
 export const resources = {
   en: {
     translation: en,
+  },
+  vi: {
+    translation: vi,
   },
   es: {
     translation: es,
@@ -15,9 +19,9 @@ export const resources = {
   },
 } as const;
 
-export const supportedLocales = ["en", "es", "ja"] as const;
+export const supportedLocales = ["vi", "en", "es", "ja"] as const;
 export type SupportedLocale = (typeof supportedLocales)[number];
-export const defaultLocale: SupportedLocale = "en";
+export const defaultLocale: SupportedLocale = "vi";
 
 export const resolveLocale = (locale?: string | null): SupportedLocale => {
   if (!locale) {

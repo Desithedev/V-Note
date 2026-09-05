@@ -2,7 +2,7 @@
 id: cu.note-persistence
 kind: computer-use
 priority: smoke
-app_target: /Users/nchopra/go/src/github.com/amicalhq/prismical/node_modules/electron/dist/Electron.app
+app_target: /Users/nchopra/go/src/github.com/Desithedev/V-Note/node_modules/electron/dist/Electron.app
 start_route: /home
 ---
 
@@ -10,11 +10,11 @@ start_route: /home
 
 ## Purpose
 
-Verify that a note created and edited through the real Prismical Electron UI persists after navigating away and returning.
+Verify that a note created and edited through the real V-Note Electron UI persists after navigating away and returning.
 
 ## Preconditions
 
-- Prismical is already running from this repository with `pnpm dev`.
+- V-Note is already running from this repository with `pnpm dev`.
 - Use `app_target` exactly. Do not attach to generic `Electron`.
 - Treat `localhost:5173/#/...` as the expected Electron dev renderer URL.
 - Do not delete existing notes or change settings.
@@ -27,7 +27,7 @@ Verify that a note created and edited through the real Prismical Electron UI per
 ## Steps
 
 1. Attach Computer Use to `app_target`.
-2. Assert the Prismical app window is visible.
+2. Assert the V-Note app window is visible.
 3. Navigate to Home if not already there.
 4. Click `+ Note`.
 5. Assert the new note editor is visible.
@@ -42,7 +42,7 @@ Verify that a note created and edited through the real Prismical Electron UI per
 
 ## Assertions
 
-- The app target is the Prismical Electron app path, not another Electron process.
+- The app target is the V-Note Electron app path, not another Electron process.
 - The note editor opens after `+ Note`.
 - The title appears on Home after navigating away.
 - The reopened note shows the same title.
@@ -54,13 +54,13 @@ Verify that a note created and edited through the real Prismical Electron UI per
 If UI evidence is ambiguous, inspect the local dev database:
 
 ```bash
-sqlite3 apps/desktop/prismical.db "select id,title,updated_at from notes order by id desc limit 5;"
+sqlite3 apps/desktop/v-note.db "select id,title,updated_at from notes order by id desc limit 5;"
 ```
 
 For editor body persistence, check that the newest note has Yjs updates:
 
 ```bash
-sqlite3 apps/desktop/prismical.db "select note_id, length(update_data) from yjs_updates order by id desc limit 5;"
+sqlite3 apps/desktop/v-note.db "select note_id, length(update_data) from yjs_updates order by id desc limit 5;"
 ```
 
 ## Report Format

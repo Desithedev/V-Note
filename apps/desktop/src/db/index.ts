@@ -6,9 +6,28 @@ import * as fs from "fs";
 import * as schema from "./schema";
 
 // Get the user data directory for storing the database
-export const dbPath = app.isPackaged
-  ? path.join(app.getPath("userData"), "prismical.db")
-  : path.join(process.cwd(), "prismical.db");
+const baseDir = app.isPackaged
+  ? app.getPath("userData")
+  : process.cwd();
+const vnoteDb = path.join(baseDir, "v-note.db");
+const legacyDb = path.join(baseDir, "prismical.db");
+
+// Migrate from legacy prismical.db if it exists and v-note.db does not
+if (!fs.existsSync(vnoteDb) && fs.existsSync(legacyDb)) {
+  try {
+    fs.copyFileSync(legacyDb, vnoteDb);
+    if (fs.existsSync(`${legacyDb}-wal`)) {
+      fs.copyFileSync(`${legacyDb}-wal`, `${vnoteDb}-wal`);
+    }
+    if (fs.existsSync(`${legacyDb}-shm`)) {
+      fs.copyFileSync(`${legacyDb}-shm`, `${vnoteDb}-shm`);
+    }
+  } catch {
+    // If copy fails, fallback will continue
+  }
+}
+
+export const dbPath = vnoteDb;
 
 export const db = drizzle(`file:${dbPath}`, {
   schema: {
@@ -66,6 +85,37 @@ export async function initializeDatabase() {
     await migrate(db, {
       migrationsFolder: migrationsPath,
     });
+
+    // Auto-patch missing columns for seamless upgrades
+    try {
+      await db.$client.execute("ALTER TABLE notes ADD COLUMN audio_file TEXT;");
+    } catch {
+      // column already exists
+    }
+
+    try {
+      await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN speaker_id TEXT;");
+    } catch {
+      // column already exists
+    }
+
+    try {
+      await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN speaker_label TEXT;");
+    } catch {
+      // column already exists
+    }
+
+    try {
+      await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN translation TEXT;");
+    } catch {
+      // column already exists
+    }
+
+    try {
+      await db.$client.execute("ALTER TABLE transcript_segments ADD COLUMN confidence REAL;");
+    } catch {
+      // column already exists
+    }
 
     logger.db.info(
       "Database initialized and migrations completed successfully",

@@ -4,7 +4,7 @@
 // NODE_ENV is set in the launching shell). Idempotent at the row level:
 // re-launching never duplicates content; once a dev edits anything, the seed
 // stops adding new fixtures to that table. The full demo only materialises
-// on a truly empty database — `rm prismical.db && pnpm dev`.
+// on a truly empty database — `rm v-note.db && pnpm dev`.
 //
 // Splits cleanly into 8 phases (see seedDevFixtures below). Each phase is
 // gated independently so partial-state DBs (older dev DBs that predate
@@ -323,7 +323,7 @@ async function seedNotesIfEmpty(
     // the one seed addition that's keyed off a stable event id, so it can
     // re-seed its meeting/transcript/artifact onto a partial-state DB.
     // Newer note-keyed additions (voice-memo, q3-roadmap snapshots) only
-    // light up on a fresh DB; `rm prismical.db && pnpm dev` is the path
+    // light up on a fresh DB; `rm v-note.db && pnpm dev` is the path
     // back to the full demo.
     const byKey = new Map<NoteKey, number>();
     const [catchUp] = await db

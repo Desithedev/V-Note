@@ -1,12 +1,12 @@
 {
   "name": "@prismical/desktop",
-  "version": "0.1.0",
-  "description": "Prismical Desktop app",
+  "version": "0.1.7",
+  "description": "V-Note Desktop app",
   "main": ".vite/build/main.js",
-  "productName": "Prismical",
+  "productName": "V-Note",
   "repository": {
     "type": "git",
-    "url": "https://github.com/amicalhq/prismical"
+    "url": "https://github.com/Desithedev/V-Note"
   },
   "author": {
     "name": "Prismical",
@@ -28,7 +28,11 @@
     "package:arm64": "pnpm build:deps && electron-forge package --platform=darwin --arch=arm64",
     "package:x64": "pnpm build:deps && electron-forge package --platform=darwin --arch=x64",
     "package:windows": "pnpm build:deps && electron-forge package --platform=win32 --arch=x64",
+    "package:windows:release": "pnpm build:deps && node scripts/build-vite-release.cjs && node scripts/package-windows-release.cjs",
     "make:windows": "pnpm build:deps && electron-forge make --platform=win32 --arch=x64",
+    "make:windows:installer": "pnpm build:deps && electron-forge make --platform=win32 --arch=x64 --targets=@electron-forge/maker-squirrel",
+    "make:macos": "pnpm build:deps && electron-forge make --platform=darwin --arch=arm64,x64 --targets=@electron-forge/maker-dmg,@electron-forge/maker-zip",
+    "make:release": "node scripts/build-release.mjs",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,mjs,mts,css,mdx}\" --cache --ignore-path=../../.prettierignore",
@@ -47,9 +51,9 @@
     "build:types": "pnpm --filter @prismical/types build",
     "build:swift-helper": "pnpm --filter @prismical/swift-helper build",
     "build:windows-helper": "pnpm --filter @prismical/windows-helper build",
-    "build:native-helper": "node -p \"process.platform === 'darwin' ? 'build:swift-helper' : process.platform === 'win32' ? 'build:windows-helper' : 'echo No native helpers'\" | xargs pnpm run",
+    "build:native-helper": "node -e \"const cp = require('child_process'); try { if (process.platform === 'win32') cp.execSync('pnpm run build:windows-helper', {stdio: 'inherit'}); else if (process.platform === 'darwin') cp.execSync('pnpm run build:swift-helper', {stdio: 'inherit'}); } catch (e) { console.warn('Native helper build skipped:', e.message); }\"",
     "dev:prepare": "pnpm download-node",
-    "dev": "electron-forge start",
+    "dev": "pnpm build:deps && electron-forge start",
     "kill": "bash scripts/kill-dev.sh",
     "download-node": "tsx scripts/download-node-binaries.ts",
     "download-node:all": "tsx scripts/download-node-binaries.ts --all"

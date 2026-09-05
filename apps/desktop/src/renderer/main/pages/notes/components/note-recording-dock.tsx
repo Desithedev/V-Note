@@ -1,5 +1,7 @@
-import { Mic, Square, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { Mic, MicOff, Square, ChevronUp, Volume2, VolumeX, Radio } from "lucide-react";
 import { Waveform } from "@/components/Waveform";
+import { toast } from "sonner";
 import {
   Tooltip,
   TooltipContent,
@@ -19,7 +21,7 @@ type NoteRecordingDockProps = {
   // the parent via useMeetingLevel so a single subscription feeds every
   // dock instance.
   level: number;
-  onStartMeeting: () => void;
+  onStartMeeting: (mode?: "dual" | "mic" | "system") => void;
   onStopMeeting: () => void;
 };
 
@@ -32,29 +34,77 @@ export function NoteRecordingDock({
   onStartMeeting,
   onStopMeeting,
 }: NoteRecordingDockProps) {
-  // "stopping" is excluded so the dock collapses back to its idle pill the
-  // moment Stop is clicked — finalisation work continues in the background and
-  // is surfaced via a "Transcribing…" indicator inside the transcription panel.
-  // "error" is included so a failed session (native helper crash, transcription
-  // chain throw) keeps the stop affordance visible. Without it the dock would
-  // render the idle mic button while the backend still holds a non-idle
-  // session, and clicking start would be rejected with "already active".
+  const [enableMic, setEnableMic] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("vnote_mic_enabled");
+      if (stored !== null) return stored !== "false";
+      return localStorage.getItem("prismical_mic_enabled") !== "false";
+    } catch {
+      return true;
+    }
+  });
+
+  const [enableSystemAudio, setEnableSystemAudio] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("vnote_system_audio_enabled");
+      if (stored !== null) return stored === "true";
+      return localStorage.getItem("prismical_system_audio_enabled") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleMic = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const nextVal = !enableMic;
+    setEnableMic(nextVal);
+    try {
+      localStorage.setItem("vnote_mic_enabled", String(nextVal));
+    } catch {}
+    if (nextVal) {
+      toast.success("🎙️ Đã BẬT thu âm Micro");
+    } else {
+      toast.info("🔇 Đã TẮT thu âm Micro");
+    }
+  };
+
+  const toggleSystemAudio = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const nextVal = !enableSystemAudio;
+    setEnableSystemAudio(nextVal);
+    try {
+      localStorage.setItem("vnote_system_audio_enabled", String(nextVal));
+    } catch {}
+    if (nextVal) {
+      toast.success("🔊 Đã BẬT thu âm thanh hệ thống (Mọi ứng dụng máy tính)");
+    } else {
+      toast.info("🔇 Đã TẮT âm thanh hệ thống");
+    }
+  };
+
   const isRecording =
     meetingState === "recording" ||
     meetingState === "starting" ||
     meetingState === "error";
   const isBusy = meetingState === "starting" || meetingState === "stopping";
-  // Sparkle visibility tracks "is the user free to invoke a skill on this
-  // note", which is true for both `idle` and `error` — the error pill is a
-  // recovery prompt, not a capture in progress. Using `isRecording` here
-  // would wrongly hide sparkle during error.
   const isActivelyCapturing =
     meetingState === "recording" || meetingState === "starting";
 
-  const handleMicClick = () => {
-    if (!isBusy) {
-      onStartMeeting();
+  const handleStartClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isBusy) return;
+
+    if (!enableMic && !enableSystemAudio) {
+      toast.error("Vui lòng bật ít nhất Micro 🎙️ hoặc Tiếng hệ thống 🔊 để bắt đầu ghi âm!");
+      return;
     }
+
+    const mode: "dual" | "mic" | "system" =
+      enableMic && enableSystemAudio ? "dual" : enableMic ? "mic" : "system";
+    onStartMeeting(mode);
   };
 
   const handleStopClick = (e: React.MouseEvent) => {
@@ -71,22 +121,15 @@ export function NoteRecordingDock({
       className={`
         group
         transition-all duration-200 ease-out overflow-hidden
-        h-[42px] hover:scale-110
-        ${isRecording ? "w-[160px]" : onToggleTranscription ? "w-[78px] hover:w-[86px]" : "w-[56px] hover:w-[64px]"}
+        h-[42px] hover:scale-105
+        ${isRecording ? "w-[160px]" : "w-[148px] hover:w-[154px]"}
         bg-black/80 dark:bg-black/70 rounded-[28px] backdrop-blur-md
         ring-[1px] ring-black/60 shadow-[0px_0px_15px_0px_rgba(0,0,0,0.40)]
         relative select-none
         flex items-center justify-center
       `}
     >
-      {/* Idle state — Mic + Chevron, delays showing when closing.
-          Both state containers stay mounted so the dock can crossfade between
-          idle and recording. `opacity-0 + pointer-events-none` hides the
-          inactive container visually and blocks clicks, but leaves its buttons
-          in the AX tree (Chromium / macOS still expose them, which was
-          surfacing a stale "Stop recording" post-stop). `inert` removes the
-          subtree from the AX tree and the focus order while preserving the
-          fade, so only the active state is interactive and announced. */}
+      {/* Idle state — Start Button + Mic Toggle + System Audio Toggle + Chevron */}
       <div
         className={`
           absolute inset-0 flex items-center justify-center gap-1 p-[5px]
@@ -96,19 +139,87 @@ export function NoteRecordingDock({
         inert={isRecording}
         aria-hidden={isRecording}
       >
+        {/* Main Start Recording Action Button */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              onClick={handleMicClick}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full cursor-pointer text-white/70 transition-colors hover:bg-white/15 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleStartClick}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full cursor-pointer bg-red-500/20 text-red-400 hover:bg-red-500/35 hover:text-red-300 transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 shadow-xs border border-red-500/30"
               aria-label="Start recording"
               disabled={isBusy}
             >
-              <Mic className="w-[18px] h-[18px]" />
+              <Radio className="w-[16px] h-[16px] animate-pulse" />
             </button>
           </TooltipTrigger>
-          <TooltipContent>Start recording</TooltipContent>
+          <TooltipContent>
+            {enableMic && enableSystemAudio
+              ? "Bắt đầu ghi âm (Micro + Hệ thống)"
+              : enableMic
+                ? "Bắt đầu ghi âm (Chỉ Micro)"
+                : enableSystemAudio
+                  ? "Bắt đầu ghi âm (Chỉ Tiếng hệ thống)"
+                  : "Bật Micro hoặc Hệ thống để ghi âm"}
+          </TooltipContent>
         </Tooltip>
+
+        {/* Mic Toggle Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggleMic}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full cursor-pointer transition-all active:scale-95 ${
+                enableMic
+                  ? "bg-sky-500/25 text-sky-400 hover:bg-sky-500/40 shadow-xs border border-sky-500/30"
+                  : "text-white/40 hover:bg-white/15 hover:text-white/70"
+              }`}
+              aria-label={enableMic ? "Micro: ĐANG BẬT" : "Micro: ĐANG TẮT"}
+              disabled={isBusy}
+            >
+              {enableMic ? (
+                <Mic className="w-[16px] h-[16px]" />
+              ) : (
+                <MicOff className="w-[16px] h-[16px]" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {enableMic
+              ? "🎙️ Micro ngoài: ĐANG BẬT (Nhấp để TẮT)"
+              : "🔇 Micro ngoài: ĐANG TẮT (Nhấp để BẬT)"}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* System Audio Toggle Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggleSystemAudio}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full cursor-pointer transition-all active:scale-95 ${
+                enableSystemAudio
+                  ? "bg-emerald-500/25 text-emerald-400 hover:bg-emerald-500/40 shadow-xs border border-emerald-500/30"
+                  : "text-white/40 hover:bg-white/15 hover:text-white/70"
+              }`}
+              aria-label={
+                enableSystemAudio
+                  ? "Âm thanh hệ thống: ĐANG BẬT"
+                  : "Âm thanh hệ thống: ĐANG TẮT"
+              }
+              disabled={isBusy}
+            >
+              {enableSystemAudio ? (
+                <Volume2 className="w-[16px] h-[16px]" />
+              ) : (
+                <VolumeX className="w-[16px] h-[16px]" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {enableSystemAudio
+              ? "🔊 Âm thanh hệ thống: ĐANG BẬT (Thu mọi âm thanh từ máy tính)"
+              : "🔇 Âm thanh hệ thống: ĐANG TẮT (Nhấp để BẬT)"}
+          </TooltipContent>
+        </Tooltip>
+
         {onToggleTranscription && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -130,8 +241,8 @@ export function NoteRecordingDock({
             </TooltipTrigger>
             <TooltipContent>
               {isTranscriptionOpen
-                ? "Hide transcription"
-                : "Show transcription"}
+                ? "Thu gọn bảng phiên âm"
+                : "Mở bảng phiên âm"}
             </TooltipContent>
           </Tooltip>
         )}

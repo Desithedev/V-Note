@@ -4,11 +4,13 @@
  * <skill>" chip. The .prismical-artifact-inline class below is the inline
  * counterpart with the same hover-only treatment. */
 
+.vnote-artifact-node,
 .prismical-artifact-node {
   position: relative;
   display: block;
 }
 
+.vnote-artifact-node__sparkle,
 .prismical-artifact-node__sparkle {
   position: absolute;
   top: 0.125rem;
@@ -21,10 +23,12 @@
   transition: opacity 120ms ease;
 }
 
+.vnote-artifact-node__sparkle:hover,
 .prismical-artifact-node__sparkle:hover {
   opacity: 1;
 }
 
+.vnote-artifact-node__sparkle:hover::after,
 .prismical-artifact-node__sparkle:hover::after {
   content: "Generated using " attr(data-skill-name);
   position: absolute;
@@ -44,10 +48,12 @@
 /* Inline-level wrapper — no visible chrome. The hover chip is rendered via
  * a CSS ::after pseudo-element so we don't add extra DOM nodes into the
  * editor's text flow. */
+.vnote-artifact-inline,
 .prismical-artifact-inline {
   position: relative;
 }
 
+.vnote-artifact-inline:hover::after,
 .prismical-artifact-inline:hover::after {
   content: "✨ " attr(data-skill-name);
   position: absolute;

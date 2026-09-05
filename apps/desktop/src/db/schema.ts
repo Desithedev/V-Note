@@ -73,7 +73,11 @@ export const transcriptSegments = sqliteTable(
       .references(() => meetings.id, { onDelete: "cascade" }),
     source: text("source").notNull(), // "mic" | "system"
     speaker: text("speaker").notNull(), // "you" | "them"
+    speakerId: text("speaker_id"),
+    speakerLabel: text("speaker_label"),
     text: text("text").notNull(),
+    translation: text("translation"),
+    confidence: real("confidence"),
     startTimeMs: integer("start_time_ms").notNull(),
     endTimeMs: integer("end_time_ms").notNull(),
     segmentOrder: integer("segment_order").notNull().default(0),
@@ -184,7 +188,14 @@ export type InstanceConfig =
   | OllamaConfig // ollama
   | OpenAICompatibleConfig // openai-compatible
   | LocalWhisperConfig // local-whisper
+  | PhoVoiceConfig // phovoice
   | MockConfig; // mock (dev only)
+
+export interface PhoVoiceConfig {
+  baseURL: string;
+  apiKey?: string;
+  mode?: "cloud" | "local";
+}
 
 export interface ApiKeyConfig {
   apiKey: string;
@@ -252,11 +263,15 @@ export interface AppSettingsData {
     silenceThreshold: number;
     maxRecordingDuration: number;
     preferredMicrophoneName?: string;
+    storagePath?: string;
   };
   meetingWidget?: {
     visibility?: "never" | "while-recording" | "always";
     edge?: "right" | "bottom";
     normalizedPosition?: number;
+    showTranscript?: boolean;
+    transcriptMode?: "full" | "caption";
+    transcriptFontSize?: "sm" | "md" | "lg";
   };
   shortcuts?: {
     pushToTalk?: number[];
@@ -314,7 +329,7 @@ export interface AppSettingsData {
     systemAudioPermissionStatus?: "unknown" | "granted" | "required"; // Cached status for passive UI. We do not run the native tap probe on screen load because that can itself trigger the OS prompt.
     skippedScreens?: string[]; // Screens skipped via feature flags
     featureInterests?: string[]; // Selected features (max 3)
-    discoverySource?: string; // How user found Prismical
+    discoverySource?: string; // How user found V-Note
     selectedModelType: "cloud" | "local"; // User's model choice
     modelRecommendation?: {
       suggested: "cloud" | "local"; // System recommendation
@@ -367,6 +382,7 @@ export const notes = sqliteTable(
     title: text("title").notNull(),
     content: text("content").default(""), // Store the actual text content
     icon: text("icon"), // Store the icon (emoji) associated with the note
+    audioFile: text("audio_file"), // Path to the extracted/recorded audio file
     starred: integer("starred", { mode: "boolean" }).notNull().default(false),
     folderId: integer("folder_id").references(() => folders.id, {
       onDelete: "set null",

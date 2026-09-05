@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Folder, FolderOpen, RotateCcw } from "lucide-react";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -43,7 +44,36 @@ export default function AdvancedSettingsPage() {
   const dataPathQuery = api.settings.getDataPath.useQuery();
   const logFilePathQuery = api.settings.getLogFilePath.useQuery();
   const machineIdQuery = api.settings.getMachineId.useQuery();
+  const recordingSettingsQuery = api.settings.getRecordingSettings.useQuery();
   const utils = api.useUtils();
+
+  const selectStorageMutation = api.settings.selectAudioStoragePath.useMutation({
+    onSuccess: (res) => {
+      if (res.success && res.path) {
+        toast.success(`Đã cập nhật thư mục lưu trữ: ${res.path}`);
+        utils.settings.getRecordingSettings.invalidate();
+      }
+    },
+    onError: (err) => {
+      toast.error(`Lỗi chọn thư mục: ${err.message}`);
+    },
+  });
+
+  const openStorageMutation = api.settings.openAudioStoragePath.useMutation({
+    onError: (err) => {
+      toast.error(`Không thể mở thư mục: ${err.message}`);
+    },
+  });
+
+  const resetStorageMutation = api.settings.resetAudioStoragePath.useMutation({
+    onSuccess: () => {
+      toast.success("Đã đặt lại thư mục lưu trữ về mặc định");
+      utils.settings.getRecordingSettings.invalidate();
+    },
+    onError: (err) => {
+      toast.error(`Lỗi đặt lại: ${err.message}`);
+    },
+  });
 
   const updateTranscriptionSettingsMutation =
     api.settings.updateTranscriptionSettings.useMutation({
@@ -130,7 +160,7 @@ export default function AdvancedSettingsPage() {
   };
 
   const handleOpenTelemetryDocs = () => {
-    window.electronAPI.openExternal("https://prismical.ai/docs/telemetry");
+    window.electronAPI.openExternal("https://v-note.ai/docs/telemetry");
   };
 
   const handleCopyMachineId = async () => {
@@ -233,6 +263,54 @@ export default function AdvancedSettingsPage() {
               checked={telemetryQuery.data?.enabled ?? true}
               onCheckedChange={handleTelemetryChange}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="audio-storage-location">
+              Nơi lưu trữ file âm thanh ghi âm (.wav)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="audio-storage-location"
+                value={
+                  recordingSettingsQuery.data?.storagePath ||
+                  "Mặc định (AppData / Roaming / V-Note / meetings)"
+                }
+                disabled
+                className="cursor-default flex-1 font-mono text-xs"
+              />
+              <Button
+                variant="outline"
+                onClick={() => selectStorageMutation.mutate()}
+                disabled={selectStorageMutation.isPending}
+                className="gap-1.5 cursor-pointer"
+              >
+                <Folder className="h-3.5 w-3.5" />
+                Chọn thư mục...
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => openStorageMutation.mutate()}
+                disabled={openStorageMutation.isPending}
+                className="gap-1.5 cursor-pointer"
+                title="Mở thư mục trong File Explorer"
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                Mở thư mục
+              </Button>
+              {recordingSettingsQuery.data?.storagePath && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => resetStorageMutation.mutate()}
+                  disabled={resetStorageMutation.isPending}
+                  className="h-9 w-9 text-muted-foreground hover:text-foreground cursor-pointer"
+                  title="Đặt lại đường dẫn mặc định"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

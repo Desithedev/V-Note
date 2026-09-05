@@ -30,6 +30,7 @@ interface AvailableTilesProps {
 // Hand-tuned — adjust here only.
 const TILE_ORDER: ProviderType[] = [
   // Implemented
+  PROVIDER_TYPES.phovoice,
   PROVIDER_TYPES.localWhisper,
   PROVIDER_TYPES.openai,
   PROVIDER_TYPES.openRouter,

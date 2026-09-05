@@ -15,6 +15,7 @@ const EMPTY_SNAPSHOT: MeetingRuntimeSnapshot = {
   noteId: null,
   durationMs: 0,
   startedAt: null,
+  mutedSources: { mic: false, system: false },
 };
 
 type MeetingSnapshotContextValue = {

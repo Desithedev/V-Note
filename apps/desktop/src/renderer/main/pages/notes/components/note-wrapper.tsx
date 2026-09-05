@@ -293,16 +293,8 @@ export default function NotePage({
     startMeetingMutation,
   ]);
 
-  const handleStartMeeting = useCallback(() => {
-    // UX gate only — the backend's check in MeetingManager.start() is the
-    // real correctness barrier. Per-note `meetingState` is coerced to "idle"
-    // when a session is active on a DIFFERENT note, so on its own it lets a
-    // foreign-note session through; also check the global snapshot so the
-    // toast we surface is helpful instead of the raw "already active".
-    // Pre-hydration clicks (HMR / cold reload while the mouse is already
-    // parked over the dock) silently no-op — better than firing a mutation
-    // into an unknown backend state. The user's retry click will land after
-    // the local IPC roundtrip completes.
+  const handleStartMeeting = useCallback(
+    (modeOverride?: "dual" | "mic" | "system") => {
     if (
       !meetingSnapshotHydrated ||
       meetingState !== "idle" ||
@@ -321,8 +313,20 @@ export default function NotePage({
       return;
     }
 
+    const isMicOn =
+      typeof window !== "undefined" &&
+      localStorage.getItem("prismical_mic_enabled") !== "false";
+    const isSystemAudioOn =
+      typeof window !== "undefined" &&
+      localStorage.getItem("prismical_system_audio_enabled") === "true";
+
+    const defaultMode: "dual" | "mic" | "system" =
+      isMicOn && isSystemAudioOn ? "dual" : isMicOn ? "mic" : "system";
+
+    const mode: "dual" | "mic" | "system" = modeOverride ?? defaultMode;
+
     startMeetingMutation
-      .mutateAsync({ noteId: noteIdNumber, mode: "dual" })
+      .mutateAsync({ noteId: noteIdNumber, mode })
       .then(() => {
         setActiveAsset("transcription");
       })
@@ -496,6 +500,7 @@ export default function NotePage({
       onEmojiChange={handleEmojiChange}
       onStarredChange={handleStarredChange}
       onFolderChange={handleFolderChange}
+      onToggleTranscription={handleToggleTranscription}
       noteUpdatedAt={note?.updatedAt ?? new Date()}
       eventData={note?.eventData ?? null}
       isDeleting={deleteMutation.isPending}

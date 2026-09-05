@@ -18,7 +18,7 @@ export interface ChangelogProps {
 
 const Changelog = ({
   title = "Changelog",
-  description = "Get the latest product updates and changes to Prismical.",
+  description = "Get the latest product updates and changes to V-Note.",
   entries = defaultChangelogData,
 }: ChangelogProps) => {
   return (
@@ -90,14 +90,14 @@ export const defaultChangelogData: ChangelogEntry[] = [
   {
     version: "Version 0.1.0",
     date: "28 April 2025",
-    title: "Prismical 0.1 coming soon!",
+    title: "V-Note 0.1 coming soon!",
     description:
-      "First version of Prismical is coming soon by end of May 2025! What to expect:",
+      "First version of V-Note is coming soon by end of May 2025! What to expect:",
     items: [
       "Mac",
       "Speech-to-Text",
       "Context-aware"
     ],
-    image: "https://placehold.co/1200x600/6b46c1/ffffff?text=Announcing+Prismical+0.1",
+    image: "https://placehold.co/1200x600/6b46c1/ffffff?text=Announcing+V-Note+0.1",
   }
 ];

@@ -519,29 +519,7 @@ export class OnboardingService extends EventEmitter {
    * - Default → whisper-base
    */
   getRecommendedLocalModelId(): string {
-    const systemInfo = this.telemetryService.getSystemInfo();
-    const gpuModel = systemInfo?.gpu_model || "";
-    const cpuModel = systemInfo?.cpu_model || "";
-
-    // High-end: RTX 50 series or M3 Pro/Max/M4+
-    if (this.hasHighEndHardware(gpuModel, cpuModel)) {
-      return "whisper-large-v3-turbo";
-    }
-
-    // Mid-tier: RTX 30/40 series or M2/M3 base
-    if (
-      this.hasNvidia30SeriesOrBetter(gpuModel) ||
-      this.hasAppleSiliconM2OrBetter(cpuModel)
-    ) {
-      return "whisper-medium";
-    }
-
-    // Entry: RTX 20 series or M1
-    if (this.hasNvidia20Series(gpuModel) || this.hasAppleSiliconM1(cpuModel)) {
-      return "whisper-small";
-    }
-
-    return "whisper-base";
+    return "phovoice-vietnamese-standard";
   }
 
   /**

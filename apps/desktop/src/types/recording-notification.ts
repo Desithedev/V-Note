@@ -66,7 +66,7 @@ export const getRecordingNotificationDescription = (
 };
 
 // Discord support server URL (same as sidebar Community link)
-export const DISCORD_SUPPORT_URL = "https://prismical.ai/community";
+export const DISCORD_SUPPORT_URL = "https://v-note.ai/community";
 
 // Config keyed directly by error code
 export const RECORDING_NOTIFICATION_ERROR_CODE_CONFIG: Record<

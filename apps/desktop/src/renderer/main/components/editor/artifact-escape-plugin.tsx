@@ -33,7 +33,7 @@ function isAtBottomEdge($pos: ResolvedPos, aDepth: number): boolean {
   return $pos.parentOffset === $pos.parent.content.size;
 }
 
-const artifactEscapeKey = new PluginKey("prismical-artifact-escape");
+const artifactEscapeKey = new PluginKey("vnote-artifact-escape");
 
 export const ArtifactEscape = Extension.create({
   name: "artifactEscape",

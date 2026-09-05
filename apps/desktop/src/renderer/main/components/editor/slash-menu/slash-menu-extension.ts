@@ -11,7 +11,7 @@ import {
   SlashMenuPopoverHandle,
 } from "./slash-menu-popover";
 
-export const SlashMenuPluginKey = new PluginKey("prismical-slash-menu");
+export const SlashMenuPluginKey = new PluginKey("vnote-slash-menu");
 
 const POPOVER_ESTIMATED_HEIGHT = 360; // ~10 items × ~32px + padding
 const POPOVER_ESTIMATED_WIDTH = 240;
@@ -48,7 +48,7 @@ function positionPopup(
 }
 
 export const SlashMenuExtension = Extension.create({
-  name: "prismicalSlashMenu",
+  name: "vnoteSlashMenu",
 
   addProseMirrorPlugins() {
     let reactRenderer: ReactRenderer<SlashMenuPopoverHandle> | null = null;

@@ -50,7 +50,7 @@ type DockProps = {
   onToggleTranscription?: () => void;
   meetingState: MeetingRuntimeState;
   level: number;
-  onStartMeeting: () => void;
+  onStartMeeting: (mode?: "dual" | "mic") => void;
   onStopMeeting: () => void;
 };
 
@@ -195,9 +195,9 @@ export function RecordingBottomCluster() {
     utils.meetings.getNoteTranscript,
   ]);
 
-  const handleStart = useCallback(() => {
+  const handleStart = useCallback((mode?: "dual" | "mic") => {
     if (currentNote) {
-      currentNote.onStartMeeting();
+      currentNote.onStartMeeting(mode);
     }
   }, [currentNote]);
 
@@ -254,6 +254,7 @@ export function RecordingBottomCluster() {
               }
               transcript={currentNote.transcript}
               meetingState={currentNote.meetingState}
+              noteId={currentNote.noteId}
             />
           </div>
         )}

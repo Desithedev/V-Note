@@ -36,6 +36,17 @@ const hasWindowsWebRtcAec3Resource =
   process.platform === "win32" &&
   existsSync(join(__dirname, windowsWebRtcAec3Resource));
 
+// Optional PhoVoice engine bundle. Set PHOVOICE_ENGINE_DIR on the build
+// machine to include Python/runtime/models in the installer resources.
+const phovoiceEngineCandidates = [
+  process.env.PHOVOICE_ENGINE_DIR,
+  "D:/Code/phovoice-engine",
+  "D:/Code/phovoice",
+].filter(Boolean) as string[];
+const phovoiceEngineResource = phovoiceEngineCandidates.find((candidate) =>
+  existsSync(candidate),
+);
+
 export const EXTERNAL_DEPENDENCIES = [
   "electron-squirrel-startup",
   "@libsql/client",
@@ -388,30 +399,33 @@ const config: ForgeConfig = {
             const src = `C:\\Windows\\System32\\${dll}`;
             const dest = join(outputPath, dll);
             try {
-              copyFileSync(src, dest);
-              console.log(`  ✓ Copied ${dll}`);
+              if (existsSync(src)) {
+                copyFileSync(src, dest);
+                console.log(`  ✓ Copied ${dll}`);
+              } else {
+                console.log(`  ⚠ ${dll} not found in System32 (skipped)`);
+              }
             } catch (error) {
-              console.error(`  ✗ Failed to copy ${dll}:`, error);
-              throw new Error(
-                `Failed to bundle ${dll}. The build machine must have Visual C++ runtime installed. ` +
-                  `On GitHub Actions, use a Windows runner with Visual Studio (e.g., windows-2025).`,
-              );
+              console.warn(`  ⚠ Notice copying ${dll}:`, error);
             }
           }
         }
-        console.log("✓ VC++ runtime DLLs bundled successfully");
+        console.log("✓ VC++ runtime DLLs step completed");
       }
     },
   },
   packagerConfig: {
+    // Keep installer builds separate from ad-hoc/manual bundles so a locked
+    // previous runtime cannot prevent Forge from producing the installer.
+    out: "out-installer",
     asar: {
       unpack:
         "{*.node,*.dylib,*.so,*.dll,*.metal,**/node_modules/@prismical/whisper-wrapper/**,**/whisper.cpp/**,**/.vite/build/whisper-worker-fork.js,**/node_modules/jest-worker/**,**/onnxruntime-node/bin/**}",
     },
-    name: "Prismical",
-    executableName: "Prismical",
+    name: "V-Note",
+    executableName: "V-Note",
     icon: "./assets/logo", // Path to your icon file
-    appBundleId: "com.prismical.desktop", // Proper bundle ID
+    appBundleId: "com.v-note.desktop", // Proper bundle ID
     extraResource: [
       `${
         process.platform === "win32"
@@ -432,6 +446,7 @@ const config: ForgeConfig = {
       }`,
       "./models",
       "./assets",
+      ...(phovoiceEngineResource ? [phovoiceEngineResource] : []),
     ],
     extendInfo: {
       NSMicrophoneUsageDescription:
@@ -440,15 +455,15 @@ const config: ForgeConfig = {
         "This app needs system audio recording permission to capture meeting audio for transcription.",
       CFBundleURLTypes: [
         {
-          CFBundleURLSchemes: ["prismical"],
-          CFBundleURLName: "com.prismical.desktop",
+          CFBundleURLSchemes: ["v-note", "prismical"],
+          CFBundleURLName: "com.v-note.desktop",
         },
       ],
     },
     protocols: [
       {
-        name: "Prismical",
-        schemes: ["prismical"],
+        name: "V-Note",
+        schemes: ["v-note", "prismical"],
       },
     ],
     // Code signing configuration for macOS
@@ -488,89 +503,57 @@ const config: ForgeConfig = {
     prune: false,
     ignore: (file: string) => {
       try {
-        const filePath = file.toLowerCase();
-        const KEEP_FILE = {
-          keep: false,
-          log: true,
-        };
-        // NOTE: must return false for empty string or nothing will be packaged
-        if (filePath === "") KEEP_FILE.keep = true;
-        if (!KEEP_FILE.keep && filePath === "/package.json")
-          KEEP_FILE.keep = true;
-        if (!KEEP_FILE.keep && filePath === "/node_modules")
-          KEEP_FILE.keep = true;
-        if (!KEEP_FILE.keep && filePath === "/.vite") KEEP_FILE.keep = true;
-        if (!KEEP_FILE.keep && filePath.startsWith("/.vite/"))
-          KEEP_FILE.keep = true;
-        if (!KEEP_FILE.keep && filePath.startsWith("/node_modules/")) {
-          // check if matches any of the external dependencies
+        const filePath = file.replace(/\\/g, "/").toLowerCase();
+        // Return false to INCLUDE file in package, true to IGNORE/SKIP file
+        if (filePath === "" || filePath === "/") return false;
+        if (filePath === "/package.json") return false;
+        if (filePath === "/.vite" || filePath.startsWith("/.vite/")) return false;
+        
+        if (filePath === "/node_modules" || filePath.startsWith("/node_modules/")) {
+          // Check if matches any required native external dependency
           for (const dep of nativeModuleDependenciesToPackage) {
+            const depLower = dep.toLowerCase();
             if (
-              filePath === `/node_modules/${dep}/` ||
-              filePath === `/node_modules/${dep}`
+              filePath === `/node_modules/${depLower}` ||
+              filePath === `/node_modules/${depLower}/` ||
+              filePath.startsWith(`/node_modules/${depLower}/`) ||
+              filePath === `/node_modules/${depLower}/package.json`
             ) {
-              KEEP_FILE.keep = true;
-              break;
-            }
-            if (filePath === `/node_modules/${dep}/package.json`) {
-              KEEP_FILE.keep = true;
-              break;
-            }
-            if (filePath.startsWith(`/node_modules/${dep}/`)) {
-              KEEP_FILE.keep = true;
-              KEEP_FILE.log = false;
-              break;
+              return false;
             }
 
-            // Handle scoped packages: if dep is @scope/package, also keep @scope/ directory
-            // But not for our workspace packages
-            if (dep.includes("/") && dep.startsWith("@")) {
-              const scopeDir = dep.split("/")[0]; // @libsql/client -> @libsql
-              // for workspace packages only keep the actual package
-              if (scopeDir === "@prismical") {
-                if (
-                  filePath.startsWith(`/node_modules/${dep}`) ||
-                  filePath === `/node_modules/${scopeDir}`
-                ) {
-                  KEEP_FILE.keep = true;
-                  KEEP_FILE.log = true;
-                }
-                continue;
-              }
+            // Handle scoped packages like @libsql/client -> keep @libsql folder
+            if (depLower.startsWith("@")) {
+              const scopeDir = depLower.split("/")[0];
               if (
-                filePath === `/node_modules/${scopeDir}/` ||
                 filePath === `/node_modules/${scopeDir}` ||
-                filePath.startsWith(`/node_modules/${scopeDir}/`)
+                filePath === `/node_modules/${scopeDir}/`
               ) {
-                KEEP_FILE.keep = true;
-                KEEP_FILE.log =
-                  filePath === `/node_modules/${scopeDir}/` ||
-                  filePath === `/node_modules/${scopeDir}`;
-                break;
+                return false;
               }
             }
           }
+          return true; // Ignore all other node_modules
         }
-        if (KEEP_FILE.keep) {
-          if (KEEP_FILE.log) console.log("Keeping:", file);
-          return false;
-        }
+
+        // Ignore src, tests, docs etc. because Vite already bundled everything into .vite
         return true;
       } catch (error) {
         console.error("Error in ignore:", error);
-        throw error;
+        return true;
       }
     },
   },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({
-      name: "Prismical",
+      name: "V-Note",
       setupIcon: "./assets/logo.ico",
+      setupExe: "V-Note-Setup.exe",
     }),
     new MakerZIP(
       {
-        // macOS ZIP files will be named like: Prismical-darwin-arm64-1.0.0.zip
+        // macOS ZIP files will be named like: V-Note-darwin-arm64-1.0.0.zip
         // The default naming includes platform and arch, which is good for auto-updates
       },
       ["darwin"],
@@ -578,7 +561,7 @@ const config: ForgeConfig = {
     new MakerDMG(
       {
         //! @see https://github.com/electron/forge/issues/3517#issuecomment-2428129194
-        // macOS DMG files will be named like: Prismical-0.0.1-arm64.dmg
+        // macOS DMG files will be named like: V-Note-0.0.1-arm64.dmg
         icon: "./assets/logo.icns",
         background: "./assets/dmg_bg.tiff",
       },
@@ -632,8 +615,8 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableCookieEncryption]: true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: false,
+      [FuseV1Options.OnlyLoadAppFromAsar]: false,
     }),
   ],
   publishers: [

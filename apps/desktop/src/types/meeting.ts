@@ -36,9 +36,15 @@ export interface TranscriptEvent {
   noteId: number | null;
   source: AudioSource;
   speaker: TranscriptSpeaker;
+  speakerId?: string;
+  speakerLabel?: string;
   text: string;
+  translation?: string;
+  confidence?: number;
   startTimeMs: number;
   endTimeMs: number;
+  rawStartTimeMs?: number;
+  rawEndTimeMs?: number;
   segmentOrder: number;
   isFinal: boolean;
   createdAt?: Date;
@@ -51,6 +57,7 @@ export interface MeetingRuntimeSnapshot {
   noteId: number | null;
   durationMs: number;
   startedAt?: number | null;
+  mutedSources: Record<AudioSource, boolean>;
 }
 
 // Per-source amplitude (RMS, normalised to 0-1) emitted by MeetingManager so

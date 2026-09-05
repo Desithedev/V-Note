@@ -13,6 +13,7 @@ import type {
   InstanceConfig,
   OllamaConfig,
   OpenAICompatibleConfig,
+  PhoVoiceConfig,
 } from "../db/schema";
 
 // Per-type credential validation. Called by the tRPC instances router
@@ -51,6 +52,8 @@ export async function validateInstanceConfig(
       return validateOllama(config as OllamaConfig);
     case PROVIDER_TYPES.openAICompatible:
       return validateOpenAICompatible(config as OpenAICompatibleConfig);
+    case PROVIDER_TYPES.phovoice:
+      return validatePhoVoice(config as PhoVoiceConfig);
     case PROVIDER_TYPES.localWhisper:
     case PROVIDER_TYPES.mock:
       return { success: true };
@@ -76,9 +79,7 @@ export async function validateInstanceConfig(
 
 // ---------- Bearer-key shape providers ----------
 
-async function validateOpenAI(
-  config: ApiKeyConfig,
-): Promise<ValidationResult> {
+async function validateOpenAI(config: ApiKeyConfig): Promise<ValidationResult> {
   return validateBearerEndpoint(
     "https://api.openai.com/v1/models",
     config.apiKey,
@@ -152,9 +153,7 @@ async function validateAnthropic(
 
 // ---------- Provider-specific shapes ----------
 
-async function validateOllama(
-  config: OllamaConfig,
-): Promise<ValidationResult> {
+async function validateOllama(config: OllamaConfig): Promise<ValidationResult> {
   try {
     const cleanUrl = normalizeOllamaUrl(config.url);
     if (!cleanUrl) return { success: false, error: "URL is required" };
@@ -195,6 +194,49 @@ async function validateOpenAICompatible(
 }
 
 // ---------- Helpers ----------
+
+async function validatePhoVoice(
+  config: PhoVoiceConfig,
+): Promise<ValidationResult> {
+  const baseURL =
+    config.baseURL?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
+  const localURL =
+    /^https?:\/\/(127\.0\.0\.1|localhost)(?::(8000|18765))?$/i.test(baseURL);
+
+  // Local PhoVoice is bundled with the desktop app and may still be warming
+  // up when the user adds the provider. URL/config validation is sufficient;
+  // the runtime healthcheck handles readiness when transcription starts.
+  if (localURL) {
+    return { success: true };
+  }
+
+  try {
+    const headers: Record<string, string> = {
+      "User-Agent": getUserAgent(),
+    };
+    if (config.apiKey) {
+      headers["Authorization"] = `Bearer ${config.apiKey}`;
+      headers["X-API-Key"] = config.apiKey;
+    }
+    const response = await fetch(`${baseURL}/health`, {
+      method: "GET",
+      headers,
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `PhoVoice Server returned HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Could not connect to PhoVoice Server at ${baseURL}: ${error instanceof Error ? error.message : "Connection refused"}`,
+    };
+  }
+}
 
 async function validateBearerEndpoint(
   url: string,

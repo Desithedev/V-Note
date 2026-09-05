@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
 import {
+  PROVIDER_TYPES,
   PROVIDER_TYPE_CONFIG_FIELDS,
   type InstanceConfigFieldName,
   type InstanceConfigFieldSpec,
@@ -95,7 +96,13 @@ export default function InstanceFormDialog({
     setError(null);
     if (mode?.kind === "create") {
       setLabel("");
-      setValues({});
+      if (mode.provider === PROVIDER_TYPES.phovoice) {
+        // The bundled PhoVoice engine listens on the app-owned port. It is
+        // started lazily, so validation must not point at the legacy 8000 port.
+        setValues({ baseURL: "http://127.0.0.1:18765" });
+      } else {
+        setValues({});
+      }
     } else if (existingQuery.data) {
       setLabel(existingQuery.data.label);
       const cfg = existingQuery.data.config as Record<string, unknown>;
@@ -153,8 +160,15 @@ export default function InstanceFormDialog({
         config,
       });
       if (!validation.success) {
-        setError(validation.error ?? "Validation failed");
-        return;
+        const message = validation.error ?? "Validation failed";
+        // A provider should remain addable when its endpoint is temporarily
+        // offline, blocked by a proxy, or rate-limited. Authentication and
+        // malformed-config errors still stop the save below.
+        if (!isConnectivityValidationError(message)) {
+          setError(message);
+          return;
+        }
+        toast.warning("Không kiểm tra được endpoint lúc này; đã lưu cấu hình để thử lại khi chat.");
       }
 
       if (mode?.kind === "create") {
@@ -237,9 +251,9 @@ export default function InstanceFormDialog({
             />
           </div>
 
-          {fields.filter((f) => !f.advanced).map((f) =>
-            renderField(f, values, setValues),
-          )}
+          {fields
+            .filter((f) => !f.advanced)
+            .map((f) => renderField(f, values, setValues))}
 
           {fields.some((f) => f.advanced) && (
             <Collapsible className="space-y-2">
@@ -255,9 +269,7 @@ export default function InstanceFormDialog({
             </Collapsible>
           )}
 
-          {error && (
-            <p className="text-xs text-destructive">{error}</p>
-          )}
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>
@@ -284,6 +296,10 @@ export default function InstanceFormDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function isConnectivityValidationError(message: string): boolean {
+  return /connection failed|failed to connect|could not connect|timed out|timeout|network|fetch failed|econn|refused|temporarily unavailable|http 429|http 5\d\d/i.test(message);
 }
 
 function renderField(

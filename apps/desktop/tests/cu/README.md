@@ -1,12 +1,12 @@
 # Computer Use Tests
 
-These are lightweight, human-readable end-to-end scenarios for running Prismical through Codex Computer Use.
+These are lightweight, human-readable end-to-end scenarios for running V-Note through Codex Computer Use.
 
 They are not Vitest or Playwright tests. They are structured prompts/checklists for an agent to operate the real Electron app as a user would.
 
 ## Running A Scenario
 
-1. Start Prismical dev mode:
+1. Start V-Note dev mode:
 
    ```bash
    pnpm dev
@@ -21,7 +21,7 @@ They are not Vitest or Playwright tests. They are structured prompts/checklists 
 3. The agent should use the exact app target from the scenario:
 
    ```text
-   /Users/nchopra/go/src/github.com/amicalhq/prismical/node_modules/electron/dist/Electron.app
+   /Users/nchopra/go/src/github.com/Desithedev/V-Note/node_modules/electron/dist/Electron.app
    ```
 
 Do not target generic `Electron`; another Electron app may be running.

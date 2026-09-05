@@ -47,7 +47,7 @@ const BUILT_IN_SHORTCUTS: Array<{
   },
 ];
 
-// TEMP: native helper bridge is disabled in Prismical, so the PTT / hands-free
+// TEMP: native helper bridge is disabled in V-Note, so the PTT / hands-free
 // / paste-last-transcript / new-note shortcuts can't actually fire. Only the
 // openApp shortcut works (via Electron's globalShortcut). The state + handlers
 // + the rendered rows for the other shortcuts are kept below and gated behind

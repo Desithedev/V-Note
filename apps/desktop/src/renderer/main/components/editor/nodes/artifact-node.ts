@@ -84,9 +84,11 @@ export const ArtifactNode = Node.create({
   parseHTML() {
     return [
       {
+        tag: "div.vnote-artifact-node",
+        contentElement: "div.vnote-artifact-node__content",
+      },
+      {
         tag: "div.prismical-artifact-node",
-        // Tell ProseMirror to look inside the inner content div when
-        // hydrating children from HTML; the sparkle gutter has no content.
         contentElement: "div.prismical-artifact-node__content",
       },
     ];
@@ -99,18 +101,18 @@ export const ArtifactNode = Node.create({
     return [
       "div",
       mergeAttributes(HTMLAttributes, {
-        class: "prismical-artifact-node",
+        class: "vnote-artifact-node prismical-artifact-node",
       }),
       [
         "span",
         {
-          class: "prismical-artifact-node__sparkle",
+          class: "vnote-artifact-node__sparkle prismical-artifact-node__sparkle",
           contenteditable: "false",
           "data-skill-name": skillName,
         },
         "✨",
       ],
-      ["div", { class: "prismical-artifact-node__content" }, 0],
+      ["div", { class: "vnote-artifact-node__content prismical-artifact-node__content" }, 0],
     ];
   },
 

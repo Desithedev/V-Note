@@ -11,14 +11,17 @@ import {
 } from "../constants/provider-types";
 import {
   getInstanceById,
+  getInstancesByProvider,
   seedInstanceIfMissing,
   updateInstance,
 } from "../db/instances";
+import { getAppSettings, updateAppSettings } from "../db/app-settings";
 import type {
   LocalWhisperConfig,
   LocalWhisperDownloadedModel,
   MockConfig,
   NewInstance,
+  PhoVoiceConfig,
 } from "../db/schema";
 
 /**
@@ -32,6 +35,7 @@ export async function bootstrapInstances(): Promise<void> {
   const includeMock = !app.isPackaged;
   await seedSystemInstances({ includeMock });
   await reconcileLocalWhisperDownloads();
+  await ensureDefaultTranscriptionModel();
 }
 
 interface SeedOpts {
@@ -45,6 +49,14 @@ async function seedSystemInstances(opts: SeedOpts): Promise<void> {
   await seedInstanceIfMissing(localWhisperRow);
   logger.main.info("Seeded system local-whisper instance (if missing)");
 
+  const phovoiceRow: NewInstance = systemRow(PROVIDER_TYPES.phovoice, {
+    baseURL: "http://127.0.0.1:18765",
+    apiKey: "",
+    mode: "local",
+  } satisfies PhoVoiceConfig);
+  await seedInstanceIfMissing(phovoiceRow);
+  logger.main.info("Seeded system phovoice instance (if missing)");
+
   if (opts.includeMock) {
     const mockRow: NewInstance = systemRow(
       PROVIDER_TYPES.mock,
@@ -52,6 +64,46 @@ async function seedSystemInstances(opts: SeedOpts): Promise<void> {
     );
     await seedInstanceIfMissing(mockRow);
     logger.main.info("Seeded system mock instance (if missing)");
+  }
+}
+
+async function ensureDefaultTranscriptionModel(): Promise<void> {
+  try {
+    const currentSettings = await getAppSettings();
+    const currentDefault = currentSettings.modelDefaults?.transcription;
+
+    let isValidCurrent = false;
+    if (currentDefault?.instanceId) {
+      const inst = await getInstanceById(currentDefault.instanceId);
+      if (inst) {
+        isValidCurrent = true;
+      }
+    }
+
+    if (!isValidCurrent) {
+      const phovoiceInstances = await getInstancesByProvider(PROVIDER_TYPES.phovoice);
+      const phovoiceId =
+        phovoiceInstances.length > 0
+          ? phovoiceInstances[0].id
+          : (SINGLETON_INSTANCE_IDS[PROVIDER_TYPES.phovoice] ?? "system-phovoice");
+
+      const nextModelDefaults = {
+        ...(currentSettings.modelDefaults ?? {}),
+        transcription: {
+          instanceId: phovoiceId,
+          modelId: "68M",
+        },
+      };
+      await updateAppSettings({
+        modelDefaults: nextModelDefaults,
+      });
+      logger.main.info("Default transcription model initialized to PhoVoice", {
+        instanceId: phovoiceId,
+        modelId: "68M",
+      });
+    }
+  } catch (error) {
+    logger.main.warn("Failed to ensure default transcription model on bootstrap:", error);
   }
 }
 
@@ -122,6 +174,7 @@ async function reconcileLocalWhisperDownloads(): Promise<void> {
   // Direction 2: add entries for known .bin files not yet tracked.
   let addedCount = 0;
   for (const model of AVAILABLE_MODELS) {
+    if (model.type !== "whisper") continue;
     if (!filesOnDisk.has(model.filename)) continue;
     if (trackedById.has(model.id)) continue;
     const stats = statSafe(path.join(modelsDir, model.filename));

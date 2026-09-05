@@ -15,6 +15,7 @@ import type {
   LocalWhisperConfig,
   OllamaConfig,
   OpenAICompatibleConfig,
+  PhoVoiceConfig,
 } from "../../db/schema";
 
 // Per-provider catalog fetchers. Each one takes the instance's config
@@ -202,6 +203,68 @@ export async function fetchLocalWhisperCatalog(
   });
   decorated.sort((a, b) => b.sizeBytes - a.sizeBytes);
   return decorated.map((d) => d.entry);
+}
+
+export async function fetchPhoVoiceCatalog(
+  config: PhoVoiceConfig,
+): Promise<CatalogEntry[]> {
+  const baseURL = config.baseURL?.replace(/\/+$/, "") || "http://127.0.0.1:8000";
+  try {
+    const headers: Record<string, string> = {
+      "User-Agent": getUserAgent(),
+    };
+    if (config.apiKey) {
+      headers["Authorization"] = `Bearer ${config.apiKey}`;
+      headers["X-API-Key"] = config.apiKey;
+    }
+    const response = await fetch(`${baseURL}/v1/capabilities`, {
+      method: "GET",
+      headers,
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = (await response.json()) as {
+      models?: Array<{ id: string; name: string; default?: boolean }>;
+    };
+    if (data.models && Array.isArray(data.models) && data.models.length > 0) {
+      return data.models.map((m) => ({
+        id: m.id,
+        name: m.name || `PhoVoice ${m.id}`,
+        type: "transcription" as const,
+        description: "Vietnamese SOTA Speech-to-Text Model",
+      }));
+    }
+  } catch (error) {
+    // Fallback static catalog if server is offline or doesn't return models list
+  }
+  return [
+    {
+      id: "68M",
+      name: "⚖️ Zipformer 68M (Balanced / SOTA Tiếng Việt)",
+      type: "transcription" as const,
+      description: "Mô hình chuẩn mực, độ chính xác cao nhất",
+    },
+    {
+      id: "30M",
+      name: "⚡ Zipformer 30M (Ultra Fast / Siêu nhanh)",
+      type: "transcription" as const,
+      description: "Mô hình siêu nhẹ, độ trễ cực thấp",
+    },
+    {
+      id: "VI-EN",
+      name: "🌐 NghiASR INT8 (Song ngữ Việt - Anh)",
+      type: "transcription" as const,
+      description: "Tối ưu thuật ngữ CNTT và song ngữ",
+    },
+    {
+      id: "MULTILINGUAL",
+      name: "🌍 PengCheng Starling (Đa ngôn ngữ)",
+      type: "transcription" as const,
+      description: "Hỗ trợ đa ngôn ngữ quốc tế",
+    },
+  ];
 }
 
 const MOCK_CATALOG: readonly CatalogEntry[] = [

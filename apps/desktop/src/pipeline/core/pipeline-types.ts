@@ -1,8 +1,7 @@
 /**
- * Core pipeline types - Simple interfaces without over-engineering
+ * Core pipeline types - Modular Transcription Provider Architecture
  */
 
-// Re-export context types from dedicated file
 import { PipelineContext } from "./context";
 import { GetAccessibilityContextResult } from "@prismical/types";
 export { PipelineContext, SharedPipelineData } from "./context";
@@ -15,6 +14,7 @@ export interface TranscribeContext {
   previousChunk?: string;
   aggregatedTranscription?: string;
   language?: string;
+  modelId?: string;
 }
 
 // Transcription input parameters
@@ -29,19 +29,34 @@ export interface TranscriptionChunkSegment {
   text: string;
   startTimeMs: number;
   endTimeMs: number;
+  speaker?: string;
+  speakerLabel?: string;
+  translation?: string;
+  confidence?: number;
 }
 
 export interface TranscriptionChunkResult {
   text: string;
+  language?: string;
+  confidence?: number;
+  processingTimeMs?: number;
   segments?: TranscriptionChunkSegment[];
 }
 
-// Transcription provider interface
+export type ProviderPrivacyType = "local" | "remote";
+
+// Universal Transcription Provider Interface
 export interface TranscriptionProvider {
+  readonly id: string;
   readonly name: string;
+  readonly privacyType?: ProviderPrivacyType;
   transcribe(params: TranscribeParams): Promise<TranscriptionChunkResult>;
   flush(context: TranscribeContext): Promise<TranscriptionChunkResult>;
   reset(): void; // Clear internal buffers without transcribing
+  getPartialText?(): string; // Real-time interim/partial recognition text
+  isAvailable?(): Promise<boolean>;
+  preloadModel?(): Promise<void>;
+  dispose?(): Promise<void>;
 }
 
 // Streaming context for pipeline processing
@@ -61,4 +76,3 @@ export interface StreamingSession {
   recordingStoppedAt?: number; // When user released record button (from RecordingManager)
   finalizationStartedAt?: number; // When finalizeSession() was called
 }
-
