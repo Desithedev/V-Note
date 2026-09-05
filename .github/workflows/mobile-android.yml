@@ -58,8 +58,8 @@ jobs:
           node-version: 24.1.0
           cache: pnpm
 
-      - name: Install Monorepo dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install Mobile dependencies
+        run: pnpm --filter @v-note/mobile... install --no-frozen-lockfile --ignore-scripts
 
       - name: Build shared types
         run: pnpm --filter @v-note/types build
