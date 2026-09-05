@@ -1,0 +1,109 @@
+name: Build Android APK (PhoVoice Offline STT)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Loại APK cần build (release hoặc debug)"
+        required: true
+        default: "release"
+        type: choice
+        options:
+          - release
+          - debug
+  push:
+    tags:
+      - "mobile-v*"
+
+jobs:
+  build_android:
+    name: Build PhoVoice Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.6"
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26b
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.1.0
+          cache: pnpm
+
+      - name: Install Monorepo dependencies
+        run: pnpm install
+
+      - name: Build shared types
+        run: pnpm --filter @v-note/types build
+
+      - name: Bundle React Native JS offline
+        run: pnpm --filter @v-note/mobile bundle:android
+
+      - name: Prepare PhoVoice Model into Android Assets
+        run: |
+          python3 apps/mobile/scripts/prepare-models.py
+
+      - name: Generate Keystore if missing
+        run: |
+          KEYSTORE_FILE="apps/mobile/android/app/debug.keystore"
+          if [ ! -f "$KEYSTORE_FILE" ]; then
+            echo "Generating debug keystore for signing..."
+            keytool -genkey -v -keystore "$KEYSTORE_FILE" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Ensure Gradle Wrapper
+        working-directory: apps/mobile/android
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "Generating Gradle wrapper..."
+            gradle wrapper --gradle-version 8.6
+          fi
+          chmod +x gradlew
+
+      - name: Build Android APK
+        working-directory: apps/mobile/android
+        run: |
+          if [ "${{ github.event.inputs.build_type }}" == "debug" ]; then
+            ./gradlew assembleDebug --no-daemon
+          else
+            ./gradlew assembleRelease --no-daemon || ./gradlew assembleDebug --no-daemon
+          fi
+
+      - name: Rename Output APK
+        run: |
+          mkdir -p output-apk
+          find apps/mobile/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apk/V-Note-PhoVoice-Android.apk \; || true
+
+      - name: Upload PhoVoice Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: V-Note-PhoVoice-Android-APK
+          path: output-apk/*.apk

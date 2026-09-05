@@ -1,0 +1,19 @@
+# Node & Dependencies
+node_modules/
+.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/app/*.keystore
+
+# Large ONNX binary models (downloaded dynamically via prepare-models.py on build)
+android/app/src/main/assets/phovoice/*.onnx
+android/app/src/main/assets/phovoice/*.bin
+android/app/src/main/assets/phovoice/*.model
+android/app/src/main/assets/*.bundle
+android/app/src/main/assets/*.bundle.meta

@@ -1,0 +1,33 @@
+{
+  "name": "@v-note/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "build:android": "cd android && ./gradlew assembleRelease",
+    "build:android:debug": "cd android && ./gradlew assembleDebug",
+    "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res",
+    "type:check": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.0",
+    "@v-note/types": "workspace:*",
+    "react": "18.3.1",
+    "react-native": "0.76.6",
+    "react-native-safe-area-context": "^5.0.0",
+    "react-native-screens": "^4.4.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.3",
+    "@babel/runtime": "^7.29.2",
+    "@react-native-community/cli": "^20.2.0",
+    "@react-native/babel-preset": "^0.87.1",
+    "@react-native/metro-config": "^0.87.1",
+    "@types/react": "^18.3.12",
+    "@v-note/eslint-config": "workspace:*",
+    "@v-note/typescript-config": "workspace:*",
+    "typescript": "~5.8.3"
+  }
+}
