@@ -91,6 +91,25 @@ jobs:
         working-directory: apps/desktop
         run: pnpm download-node
 
+      - name: Setup Python for PhoVoice Engine
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bundle PhoVoice Python environment (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          python -m venv packages/phovoice-engine/python
+          packages/phovoice-engine/python/Scripts/python.exe -m pip install --upgrade pip
+          packages/phovoice-engine/python/Scripts/pip.exe install -r packages/phovoice-engine/requirements.txt
+
+      - name: Bundle PhoVoice Python environment (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          python -m venv packages/phovoice-engine/python
+          packages/phovoice-engine/python/bin/python -m pip install --upgrade pip
+          packages/phovoice-engine/python/bin/pip install -r packages/phovoice-engine/requirements.txt
+
       - name: Package desktop app (no signing)
         working-directory: apps/desktop
         env:

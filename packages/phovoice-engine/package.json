@@ -1,0 +1,9 @@
+{
+  "name": "@v-note/phovoice-engine",
+  "version": "1.0.0",
+  "description": "PhoVoice Vietnamese AI Engine for V-Note (FastAPI, Sherpa-ONNX, Silero VAD, ViBERT-Capu)",
+  "private": true,
+  "scripts": {
+    "start": "python server.py"
+  }
+}

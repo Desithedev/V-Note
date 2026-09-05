@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+python/
+env/
+ENV/
+
+# Large binaries & model weights (downloaded on demand or locally cached)
+models/
+data/
+*.onnx
+*.bin
+*.tar.bz2
+*.tmp
+
+# Logs & temp
+*.log
+.pytest_cache/

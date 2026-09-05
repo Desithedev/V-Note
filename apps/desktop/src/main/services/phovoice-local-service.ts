@@ -134,18 +134,10 @@ export class PhoVoiceLocalService extends EventEmitter {
       // Production paths inside resourcesPath
       const resourcesPath = process.resourcesPath;
       const bundledEngineDir = path.join(resourcesPath, "phovoice-engine");
-      const bundledPython =
-        process.platform === "win32"
-          ? path.join(bundledEngineDir, "python", "python.exe")
-          : path.join(bundledEngineDir, "python", "bin", "python3");
-      const bundledServer = path.join(bundledEngineDir, "server.py");
-      const bundledVenvPython =
-        process.platform === "win32"
-          ? path.join(bundledEngineDir, "python", "Scripts", "python.exe")
-          : "";
-
-      // Check if standalone binary or bundled python exists
-      const standaloneExe = path.join(bundledEngineDir, "phovoice-engine.exe");
+      const standaloneExe = path.join(
+        bundledEngineDir,
+        process.platform === "win32" ? "phovoice-engine.exe" : "phovoice-engine",
+      );
       if (fs.existsSync(standaloneExe)) {
         return {
           pythonExecutable: standaloneExe,
@@ -155,21 +147,20 @@ export class PhoVoiceLocalService extends EventEmitter {
         };
       }
 
-      if (fs.existsSync(bundledPython) && fs.existsSync(bundledServer)) {
+      const pythonCandidates = [
+        path.join(bundledEngineDir, "python", "Scripts", "python.exe"),
+        path.join(bundledEngineDir, ".venv", "Scripts", "python.exe"),
+        path.join(bundledEngineDir, "python", "python.exe"),
+        path.join(bundledEngineDir, "python", "bin", "python3"),
+        path.join(bundledEngineDir, ".venv", "bin", "python3"),
+        path.join(bundledEngineDir, "python", "bin", "python"),
+      ];
+      const bundledPython = pythonCandidates.find((c) => fs.existsSync(c));
+      const bundledServer = path.join(bundledEngineDir, "server.py");
+
+      if (bundledPython && fs.existsSync(bundledServer)) {
         return {
           pythonExecutable: bundledPython,
-          serverScriptPath: bundledServer,
-          modelsDir,
-          cwd: bundledEngineDir,
-        };
-      }
-      if (
-        bundledVenvPython &&
-        fs.existsSync(bundledVenvPython) &&
-        fs.existsSync(bundledServer)
-      ) {
-        return {
-          pythonExecutable: bundledVenvPython,
           serverScriptPath: bundledServer,
           modelsDir,
           cwd: bundledEngineDir,
@@ -178,19 +169,16 @@ export class PhoVoiceLocalService extends EventEmitter {
     }
 
     const configuredDevDir = process.env.PHOVOICE_DEV_DIR?.trim();
-    // Development fallback only. Never depend on a developer's absolute
-    // machine path; production always uses resources/phovoice-engine above.
-    const devRoots = [
-      path.resolve(app.getAppPath(), "..", "..", ".."),
-      path.resolve(process.cwd(), "..", "..", ".."),
-      path.resolve(process.cwd(), ".."),
-    ];
+    // Development fallback within monorepo packages/phovoice-engine
     const devCandidates = [
       configuredDevDir ? path.resolve(configuredDevDir) : null,
-      ...devRoots.flatMap((root) => [
-        path.join(root, "phovoice-engine"),
-        path.join(root, "phovoice"),
-      ]),
+      path.resolve(app.getAppPath(), "../../packages/phovoice-engine"),
+      path.resolve(process.cwd(), "../../packages/phovoice-engine"),
+      path.resolve(process.cwd(), "packages/phovoice-engine"),
+      path.resolve(app.getAppPath(), "../../../phovoice-engine"),
+      path.resolve(process.cwd(), "../../../phovoice-engine"),
+      path.resolve(process.cwd(), "../phovoice-engine"),
+      "D:/Code/phovoice-engine",
     ];
     const localDevPhovoiceDir = devCandidates.find(
       (candidate) =>
@@ -198,8 +186,21 @@ export class PhoVoiceLocalService extends EventEmitter {
     );
     if (localDevPhovoiceDir) {
       const serverPy = path.join(localDevPhovoiceDir, "server.py");
+      const devPythonCandidates = [
+        path.join(localDevPhovoiceDir, "python", "Scripts", "python.exe"),
+        path.join(localDevPhovoiceDir, ".venv", "Scripts", "python.exe"),
+        path.join(localDevPhovoiceDir, "venv", "Scripts", "python.exe"),
+        path.join(localDevPhovoiceDir, "python", "python.exe"),
+        path.join(localDevPhovoiceDir, "python", "bin", "python3"),
+        path.join(localDevPhovoiceDir, ".venv", "bin", "python3"),
+        path.join(localDevPhovoiceDir, "venv", "bin", "python3"),
+        path.join(localDevPhovoiceDir, "python", "bin", "python"),
+      ];
+      const pythonExecutable =
+        devPythonCandidates.find((c) => fs.existsSync(c)) || "python";
+
       return {
-        pythonExecutable: "python",
+        pythonExecutable,
         serverScriptPath: serverPy,
         modelsDir,
         cwd: localDevPhovoiceDir,
@@ -286,8 +287,17 @@ export class PhoVoiceLocalService extends EventEmitter {
             String(this.port),
             "--host",
             "127.0.0.1",
+            "--models-dir",
+            paths.modelsDir,
           ]
-        : ["--port", String(this.port), "--host", "127.0.0.1"];
+        : [
+            "--port",
+            String(this.port),
+            "--host",
+            "127.0.0.1",
+            "--models-dir",
+            paths.modelsDir,
+          ];
 
       this.process = spawn(paths.pythonExecutable, args, {
         cwd: paths.cwd,

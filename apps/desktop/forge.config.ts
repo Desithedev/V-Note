@@ -36,10 +36,10 @@ const hasWindowsWebRtcAec3Resource =
   process.platform === "win32" &&
   existsSync(join(__dirname, windowsWebRtcAec3Resource));
 
-// Optional PhoVoice engine bundle. Set PHOVOICE_ENGINE_DIR on the build
-// machine to include Python/runtime/models in the installer resources.
+// PhoVoice engine bundle inside monorepo packages/phovoice-engine.
 const phovoiceEngineCandidates = [
   process.env.PHOVOICE_ENGINE_DIR,
+  join(__dirname, "../../packages/phovoice-engine"),
   "D:/Code/phovoice-engine",
   "D:/Code/phovoice",
 ].filter(Boolean) as string[];
