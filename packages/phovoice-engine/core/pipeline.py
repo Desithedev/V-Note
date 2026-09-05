@@ -114,9 +114,13 @@ class PhoVoicePipeline:
         model_path = os.path.join(self.models_dir, model_subpath)
 
         if not os.path.isdir(model_path):
-            # Fallback to 68M or first available model
+            # Fallback to 68M or streaming model
             model_path = os.path.join(self.models_dir, MODEL_PROFILES["68M"]["dir"])
             if not os.path.isdir(model_path):
+                logger.info("[PhoVoicePipeline] Offline model not found, falling back to 30M streaming model")
+                rec = self._get_streaming_recognizer()
+                if rec is not None:
+                    return rec
                 raise FileNotFoundError(f"ASR model directory not found at: {model_path}")
 
         def pick(kind: str) -> str:
@@ -126,19 +130,26 @@ class PhoVoicePipeline:
             plain = [f for f in candidates if not f.endswith(".opt")]
             return os.path.join(model_path, (plain or candidates)[0])
 
-        num_threads = min(6, max(2, (os.cpu_count() or 4) // 2))
-        recognizer = sherpa_onnx.OfflineRecognizer.from_transducer(
-            encoder=pick("encoder"),
-            decoder=pick("decoder"),
-            joiner=pick("joiner"),
-            tokens=os.path.join(model_path, "tokens.txt"),
-            num_threads=num_threads,
-            sample_rate=16000,
-            feature_dim=80,
-            decoding_method="modified_beam_search",
-        )
-        self._offline_recognizers[model_key] = recognizer
-        return recognizer
+        try:
+            num_threads = min(6, max(2, (os.cpu_count() or 4) // 2))
+            recognizer = sherpa_onnx.OfflineRecognizer.from_transducer(
+                encoder=pick("encoder"),
+                decoder=pick("decoder"),
+                joiner=pick("joiner"),
+                tokens=os.path.join(model_path, "tokens.txt"),
+                num_threads=num_threads,
+                sample_rate=16000,
+                feature_dim=80,
+                decoding_method="modified_beam_search",
+            )
+            self._offline_recognizers[model_key] = recognizer
+            return recognizer
+        except Exception as e:
+            logger.warning(f"[PhoVoicePipeline] Failed to load offline recognizer ({e}), falling back to streaming model")
+            rec = self._get_streaming_recognizer()
+            if rec is not None:
+                return rec
+            raise
 
     def _get_streaming_recognizer(self) -> Any:
         if self._streaming_recognizer is not None:
