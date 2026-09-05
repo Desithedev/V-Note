@@ -286,15 +286,33 @@ export class WindowManager {
       logger.main.error("MainWindow render-process-gone", details);
     });
 
+    // Enable F12 and Ctrl+Shift+I to toggle DevTools on demand
+    this.mainWindow.webContents.on("before-input-event", (event, input) => {
+      if (input.type === "keyDown") {
+        if (
+          input.key === "F12" ||
+          ((input.control || input.meta) &&
+            input.shift &&
+            (input.key === "I" || input.key === "i"))
+        ) {
+          this.mainWindow?.webContents.toggleDevTools();
+          event.preventDefault();
+        }
+      }
+    });
+
     // Load the window URL, appending initial route as hash if provided
     // This avoids race conditions when the renderer isn't ready for IPC events
-    if (typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined" && MAIN_WINDOW_VITE_DEV_SERVER_URL && MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined") {
+    if (
+      typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined" &&
+      MAIN_WINDOW_VITE_DEV_SERVER_URL &&
+      MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined"
+    ) {
       const url = initialRoute
         ? `${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${initialRoute}`
         : MAIN_WINDOW_VITE_DEV_SERVER_URL;
       logger.main.info("Loading MainWindow from Vite Dev Server URL:", { url });
       this.mainWindow.loadURL(url);
-      this.mainWindow.webContents.openDevTools();
     } else {
       const filePath = path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`);
       logger.main.info("Loading MainWindow from file:", { filePath });

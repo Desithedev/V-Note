@@ -2,13 +2,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { app, ipcMain, protocol, net } from "electron";
-
-// Avoid startup crashes on Windows machines with an unavailable Chromium GPU
-// driver. This must run before Electron creates any BrowserWindow instances.
-if (process.platform === "win32") {
-  app.disableHardwareAcceleration();
-  app.commandLine.appendSwitch("disable-gpu");
-}
 import { pathToFileURL, fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
