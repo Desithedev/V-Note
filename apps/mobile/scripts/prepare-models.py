@@ -20,7 +20,8 @@ def main():
     print(f"[PhoVoice Mobile] Dang chuan bi model tai: {TARGET_DIR}")
     
     # Kiem tra xem da co trong packages/phovoice-engine/models chua
-    engine_models = os.path.join(os.path.dirname(BASE_DIR), "packages", "phovoice-engine", "models", "zipformer-30m-rnnt-streaming-6000h")
+    root_dir = os.path.abspath(os.path.join(BASE_DIR, "..", ".."))
+    engine_models = os.path.join(root_dir, "packages", "phovoice-engine", "models", "zipformer-30m-rnnt-streaming-6000h")
     
     for url, filename in MODELS:
         target_path = os.path.join(TARGET_DIR, filename)

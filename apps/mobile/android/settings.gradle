@@ -1,2 +1,16 @@
 rootProject.name = 'VNoteMobile'
 include ':app'
+
+def getModuleDir(String moduleName, String subPath = "android") {
+    def localPath = new File(rootProject.projectDir, "../../node_modules/" + moduleName + "/" + subPath)
+    if (localPath.exists()) return localPath
+    def rootPath = new File(rootProject.projectDir, "../../../node_modules/" + moduleName + "/" + subPath)
+    if (rootPath.exists()) return rootPath
+    return null
+}
+
+def asyncStorageDir = getModuleDir("@react-native-async-storage/async-storage")
+if (asyncStorageDir != null) {
+    include ':react-native-async-storage_async-storage'
+    project(':react-native-async-storage_async-storage').projectDir = asyncStorageDir
+}

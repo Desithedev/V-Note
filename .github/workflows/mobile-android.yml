@@ -59,7 +59,7 @@ jobs:
           cache: pnpm
 
       - name: Install Monorepo dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build shared types
         run: pnpm --filter @v-note/types build
