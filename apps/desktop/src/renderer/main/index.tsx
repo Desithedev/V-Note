@@ -107,6 +107,7 @@ if (container) {
   };
 
   void bootstrap().catch((error) => {
-    console.error("Failed to initialize i18n", error);
+    console.error("Failed to initialize i18n, rendering app directly", error);
+    root.render(<App />);
   });
 }

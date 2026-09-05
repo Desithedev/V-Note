@@ -384,6 +384,9 @@ export class PhoVoiceLocalService extends EventEmitter {
   ): Promise<boolean> {
     const startTime = Date.now();
     while (Date.now() - startTime < timeoutMs) {
+      if (!this.process) {
+        return false;
+      }
       if (await this.pingHealth()) {
         return true;
       }

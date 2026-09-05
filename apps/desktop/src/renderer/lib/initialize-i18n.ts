@@ -6,7 +6,13 @@ export const initializeRendererI18n = async () => {
   let preferredLocale: string | null | undefined;
 
   try {
-    const settings = await trpcClient.settings.getSettings.query();
+    const timeoutPromise = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 1000),
+    );
+    const settings = (await Promise.race([
+      trpcClient.settings.getSettings.query(),
+      timeoutPromise,
+    ])) as any;
     preferredLocale = settings?.ui?.locale;
   } catch (error) {
     console.warn(

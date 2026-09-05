@@ -273,16 +273,33 @@ export class WindowManager {
       }
     });
 
+    // Attach tRPC handler before loading the URL to ensure IPC handlers are ready
+    this.trpcHandler.attachWindow(this.mainWindow!);
+
+    this.mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+      logger.main.error("MainWindow did-fail-load", { errorCode, errorDescription, validatedURL });
+    });
+    this.mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+      logger.main.info(`[MainWindow Console] [level ${level}] ${message} (${sourceId}:${line})`);
+    });
+    this.mainWindow.webContents.on("render-process-gone", (_event, details) => {
+      logger.main.error("MainWindow render-process-gone", details);
+    });
+
     // Load the window URL, appending initial route as hash if provided
     // This avoids race conditions when the renderer isn't ready for IPC events
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       const url = initialRoute
         ? `${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${initialRoute}`
         : MAIN_WINDOW_VITE_DEV_SERVER_URL;
+      logger.main.info("Loading MainWindow from Vite Dev Server URL:", { url });
       this.mainWindow.loadURL(url);
+      this.mainWindow.webContents.openDevTools();
     } else {
+      const filePath = path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`);
+      logger.main.info("Loading MainWindow from file:", { filePath });
       this.mainWindow.loadFile(
-        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+        filePath,
         initialRoute ? { hash: initialRoute } : undefined,
       );
     }
@@ -296,8 +313,6 @@ export class WindowManager {
       // Window is already destroyed, just clean up reference
       this.mainWindow = null;
     });
-
-    this.trpcHandler.attachWindow(this.mainWindow!);
   }
 
   async createOrShowOnboardingWindow(): Promise<void> {
