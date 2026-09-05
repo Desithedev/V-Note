@@ -19,6 +19,7 @@ import {
   rmSync,
   lstatSync,
   readlinkSync,
+  realpathSync,
   copyFileSync,
 } from "node:fs";
 import { join, normalize } from "node:path";
@@ -28,7 +29,28 @@ import { join, normalize } from "node:path";
 // grabs nested dependencies from tree
 import { Walker, DepType, type Module } from "flora-colossus";
 
-let nativeModuleDependenciesToPackage: string[] = [];
+export const EXTERNAL_DEPENDENCIES = [
+  "electron-squirrel-startup",
+  "@libsql/client",
+  "@libsql/core",
+  "@libsql/hrana-client",
+  "@libsql/isomorphic-fetch",
+  "@libsql/isomorphic-ws",
+  "@libsql/darwin-arm64",
+  "@libsql/darwin-x64",
+  "@libsql/linux-x64-gnu",
+  "@libsql/linux-x64-musl",
+  "@libsql/win32-x64-msvc",
+  "libsql",
+  "@neon-rs/load",
+  "detect-libc",
+  "ws",
+  "onnxruntime-node",
+  "@v-note/whisper-wrapper",
+  // Add any other native modules you need here
+];
+
+let nativeModuleDependenciesToPackage: string[] = [...EXTERNAL_DEPENDENCIES];
 
 const windowsWebRtcAec3Resource =
   "../../packages/native-helpers/audio-capture/bin/prismical_webrtc_aec3.dll";
@@ -46,20 +68,6 @@ const phovoiceEngineCandidates = [
 const phovoiceEngineResource = phovoiceEngineCandidates.find((candidate) =>
   existsSync(candidate),
 );
-
-export const EXTERNAL_DEPENDENCIES = [
-  "electron-squirrel-startup",
-  "@libsql/client",
-  "@libsql/darwin-arm64",
-  "@libsql/darwin-x64",
-  "@libsql/linux-x64-gnu",
-  "@libsql/linux-x64-musl",
-  "@libsql/win32-x64-msvc",
-  "libsql",
-  "onnxruntime-node",
-  "@v-note/whisper-wrapper",
-  // Add any other native modules you need here
-];
 
 const config: ForgeConfig = {
   hooks: {
@@ -108,20 +116,30 @@ const config: ForgeConfig = {
               ) => Promise<void>;
             };
             const moduleRoot = join(monorepoRoot, "node_modules", external);
-            console.log("moduleRoot", moduleRoot);
-            // Initialize Walker with monorepo root as base path
-            const walker = new Walker(
-              monorepoRoot,
-            ) as unknown as MyPublicWalker;
-            walker.modules = [];
-            await walker.walkDependenciesForModule(moduleRoot, DepType.PROD);
-            walker.modules
-              .filter(
-                (dep) => (dep.nativeModuleType as number) === DepType.PROD,
-              )
-              // Remove the problematic name splitting that breaks scoped packages
-              .map((dep) => dep.name)
-              .forEach((name) => foundModules.add(name));
+            const localModuleRoot = join(localNodeModules, external);
+            const effectiveRoot = existsSync(moduleRoot)
+              ? moduleRoot
+              : existsSync(localModuleRoot)
+                ? localModuleRoot
+                : null;
+            if (!effectiveRoot) continue;
+            try {
+              // Initialize Walker with monorepo root as base path
+              const walker = new Walker(
+                monorepoRoot,
+              ) as unknown as MyPublicWalker;
+              walker.modules = [];
+              await walker.walkDependenciesForModule(effectiveRoot, DepType.PROD);
+              walker.modules
+                .filter(
+                  (dep) => (dep.nativeModuleType as number) === DepType.PROD,
+                )
+                // Remove the problematic name splitting that breaks scoped packages
+                .map((dep) => dep.name)
+                .forEach((name) => foundModules.add(name));
+            } catch (err) {
+              console.warn(`Could not walk dependencies for ${external}:`, err);
+            }
           }
         }
         return foundModules;
@@ -152,15 +170,20 @@ const config: ForgeConfig = {
         const localDepPath = join(localNodeModules, dep);
 
         try {
-          // Skip if source doesn't exist
-          if (!existsSync(rootDepPath)) {
-            console.log(`Skipping ${dep}: not found in root node_modules`);
-            continue;
+          // If localDepPath exists and is a real directory (not symlink), we're good
+          if (existsSync(localDepPath)) {
+            const stats = lstatSync(localDepPath);
+            if (!stats.isSymbolicLink()) {
+              console.log(`Skipping ${dep}: already exists locally as a real directory`);
+              continue;
+            }
+            // If it is a symlink, remove it so we can copy actual physical directory
+            rmSync(localDepPath, { recursive: true, force: true });
           }
 
-          // Skip if target already exists (don't override)
-          if (existsSync(localDepPath)) {
-            console.log(`Skipping ${dep}: already exists locally`);
+          // Skip if source doesn't exist in root node_modules
+          if (!existsSync(rootDepPath)) {
+            console.log(`Skipping ${dep}: not found in root node_modules`);
             continue;
           }
 
@@ -195,7 +218,7 @@ const config: ForgeConfig = {
         }
       }
 
-      // Second pass: Replace any symlinks with dereferenced copies
+      // Second pass: Replace any remaining symlinks with dereferenced copies
       console.log("Checking for symlinks in copied dependencies...");
       for (const dep of nativeModuleDependenciesToPackage) {
         const localDepPath = join(localNodeModules, dep);
@@ -208,14 +231,7 @@ const config: ForgeConfig = {
                 `Found symlink for ${dep}, replacing with dereferenced copy...`,
               );
 
-              // Read where the symlink points to
-              const symlinkTarget = readlinkSync(localDepPath);
-              let absoluteTarget = symlinkTarget;
-              if (process.platform !== "win32") {
-                absoluteTarget = join(localDepPath, "..", symlinkTarget);
-              }
-              const sourcePath = normalize(absoluteTarget);
-
+              const sourcePath = realpathSync(localDepPath);
               console.log(`  Symlink points to: ${sourcePath}`);
 
               // Remove the symlink
@@ -502,21 +518,33 @@ const config: ForgeConfig = {
     prune: false,
     ignore: (file: string) => {
       try {
-        const filePath = file.replace(/\\/g, "/").toLowerCase();
+        let filePath = file.replace(/\\/g, "/").toLowerCase();
+        if (!filePath.startsWith("/")) filePath = "/" + filePath;
+
         // Return false to INCLUDE file in package, true to IGNORE/SKIP file
-        if (filePath === "" || filePath === "/") return false;
+        if (
+          filePath === "" ||
+          filePath === "/" ||
+          filePath === "/." ||
+          filePath === "/./"
+        ) {
+          return false;
+        }
         if (filePath === "/package.json") return false;
         if (filePath === "/.vite" || filePath.startsWith("/.vite/")) return false;
-        
-        if (filePath === "/node_modules" || filePath.startsWith("/node_modules/")) {
+
+        // CRITICAL: packager checks `/node_modules` container directory first.
+        // Returning false allows packager to traverse into it.
+        if (filePath === "/node_modules" || filePath === "/node_modules/") return false;
+
+        if (filePath.startsWith("/node_modules/")) {
           // Check if matches any required native external dependency
           for (const dep of nativeModuleDependenciesToPackage) {
             const depLower = dep.toLowerCase();
             if (
               filePath === `/node_modules/${depLower}` ||
               filePath === `/node_modules/${depLower}/` ||
-              filePath.startsWith(`/node_modules/${depLower}/`) ||
-              filePath === `/node_modules/${depLower}/package.json`
+              filePath.startsWith(`/node_modules/${depLower}/`)
             ) {
               return false;
             }
