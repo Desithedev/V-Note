@@ -288,7 +288,7 @@ export class WindowManager {
 
     // Load the window URL, appending initial route as hash if provided
     // This avoids race conditions when the renderer isn't ready for IPC events
-    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    if (typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined" && MAIN_WINDOW_VITE_DEV_SERVER_URL && MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined") {
       const url = initialRoute
         ? `${MAIN_WINDOW_VITE_DEV_SERVER_URL}#${initialRoute}`
         : MAIN_WINDOW_VITE_DEV_SERVER_URL;
@@ -354,7 +354,7 @@ export class WindowManager {
       },
     });
 
-    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    if (typeof MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined" && MAIN_WINDOW_VITE_DEV_SERVER_URL && MAIN_WINDOW_VITE_DEV_SERVER_URL !== "undefined") {
       const devUrl = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
       devUrl.pathname = "onboarding.html";
       this.onboardingWindow.loadURL(devUrl.toString());
