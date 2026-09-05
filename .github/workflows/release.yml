@@ -33,7 +33,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
           fetch-depth: 0
           submodules: recursive
 
@@ -113,18 +112,18 @@ jobs:
         run: pnpm download-node
 
       - name: Import Developer ID cert
-        if: matrix.os == 'macos' && github.event_name != 'pull_request'
+        if: matrix.os == 'macos' && github.event_name != 'pull_request' && secrets.DEVELOPER_CERT_BASE64 != ''
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.DEVELOPER_CERT_BASE64 }}
           p12-password: ${{ secrets.DEVELOPER_CERT_PASSPHRASE }}
 
       - name: List signing identities (debug)
-        if: matrix.os == 'macos' && github.event_name != 'pull_request'
+        if: matrix.os == 'macos' && github.event_name != 'pull_request' && secrets.DEVELOPER_CERT_BASE64 != ''
         run: security find-identity -v -p codesigning
 
-      - name: Build artifacts (macOS release)
-        if: matrix.os == 'macos' && github.event_name != 'pull_request'
+      - name: Build artifacts (macOS release - signed)
+        if: matrix.os == 'macos' && github.event_name != 'pull_request' && secrets.DEVELOPER_CERT_BASE64 != ''
         working-directory: apps/desktop
         env:
           SKIP_CODESIGNING: false
@@ -143,11 +142,11 @@ jobs:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
           AUTH_REDIRECT_URI: ${{ secrets.AUTH_REDIRECT_URI }}
         run: |
-          echo "Building macOS ${{ matrix.arch }} artifacts"
+          echo "Building signed macOS ${{ matrix.arch }} artifacts"
           pnpm make:${{ matrix.arch }}
 
-      - name: Build artifacts (macOS PR)
-        if: matrix.os == 'macos' && github.event_name == 'pull_request'
+      - name: Build artifacts (macOS release - unsigned)
+        if: matrix.os == 'macos' && (github.event_name == 'pull_request' || secrets.DEVELOPER_CERT_BASE64 == '')
         working-directory: apps/desktop
         env:
           SKIP_CODESIGNING: "true"
@@ -162,7 +161,7 @@ jobs:
           API_ENDPOINT: ""
           AUTH_REDIRECT_URI: ""
         run: |
-          echo "Building unsigned macOS ${{ matrix.arch }} PR artifacts"
+          echo "Building unsigned macOS ${{ matrix.arch }} artifacts"
           pnpm make:${{ matrix.arch }}
 
       - name: Build artifacts (Windows release)
@@ -256,7 +255,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
           fetch-depth: 0
 
       - name: Get version from package.json
@@ -273,11 +271,11 @@ jobs:
             CURRENT_REF="refs/tags/${CURRENT_TAG}"
 
             if ! git rev-parse --verify --quiet "${CURRENT_REF}^{commit}" >/dev/null; then
-              echo "Tag ${CURRENT_TAG} does not exist"
-              exit 1
+              CURRENT_SHA=$(git rev-parse HEAD)
+              echo "Tag ${CURRENT_TAG} does not exist yet in git, using HEAD commit: ${CURRENT_SHA}"
+            else
+              CURRENT_SHA=$(git rev-parse "${CURRENT_REF}^{commit}")
             fi
-
-            CURRENT_SHA=$(git rev-parse "${CURRENT_REF}^{commit}")
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             CURRENT_TAG="${{ github.ref_name }}"
             CURRENT_REF="${{ github.ref }}"
