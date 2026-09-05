@@ -468,77 +468,6 @@ export const meetingsRouter = createRouter({
         }
       }
 
-      // 3. Fallback: Scan latest meeting directories in candidateBases if still empty
-      if (Object.keys(sessionsMap).length === 0) {
-        const foundMeetingDirs: { dir: string; mtime: number }[] = [];
-        for (const storageBase of candidateBases) {
-          if (!fs.existsSync(storageBase)) continue;
-          try {
-            const entries = await fs.promises.readdir(storageBase, { withFileTypes: true });
-            for (const entry of entries) {
-              if (entry.isDirectory()) {
-                const fullDir = path.join(storageBase, entry.name);
-                const stat = await fs.promises.stat(fullDir);
-                foundMeetingDirs.push({ dir: fullDir, mtime: stat.mtimeMs });
-              }
-            }
-          } catch {}
-        }
-
-        foundMeetingDirs.sort((a, b) => b.mtime - a.mtime);
-        for (const { dir } of foundMeetingDirs.slice(0, 5)) {
-          const mId = path.basename(dir);
-          let micPath: string | null = null;
-          let systemPath: string | null = null;
-          for (const cand of [
-            "system.wav",
-            "mic_processed.wav",
-            "mic.wav",
-            "audio.wav",
-            path.join("trace", "transcription-system.wav"),
-            path.join("trace", "transcription-mic.wav"),
-            path.join("trace", "app-frame-system.wav"),
-            path.join("trace", "app-frame-mic_processed.wav"),
-          ]) {
-            const p = path.join(dir, cand);
-            if (fs.existsSync(p)) {
-              try {
-                if (fs.statSync(p).size > 100) {
-                  if (cand.includes("system")) systemPath = p;
-                  else if (!micPath) micPath = p;
-                }
-              } catch {}
-            }
-          }
-          if (micPath || systemPath) {
-            let mixedPath: string | null = null;
-            if (micPath && systemPath) {
-              const candidateMixed = path.join(dir, "mixed.wav");
-              if (fs.existsSync(candidateMixed) && fs.statSync(candidateMixed).size > 100) {
-                mixedPath = candidateMixed;
-              } else {
-                const ok = mixWavFiles(micPath, systemPath, candidateMixed);
-                if (ok) mixedPath = candidateMixed;
-              }
-            }
-            const mixedDataUrl = mixedPath ? fileToMediaUrl(mixedPath) : null;
-            const micDataUrl = micPath ? fileToMediaUrl(micPath) : null;
-            const systemDataUrl = systemPath ? fileToMediaUrl(systemPath) : null;
-            const dataUrl = mixedDataUrl || micDataUrl || systemDataUrl;
-            if (dataUrl) {
-              sessionsMap[mId] = {
-                meetingId: mId,
-                micDataUrl,
-                systemDataUrl,
-                mixedDataUrl,
-                dataUrl,
-              };
-              break;
-            }
-          }
-        }
-      }
-
       // Check fallback note.audioFile
       const [note] = await db
         .select({ audioFile: notes.audioFile })
@@ -576,6 +505,7 @@ export const meetingsRouter = createRouter({
           systemDataUrl: null,
           mixedDataUrl: null,
           sessions: {},
+          sessionKeys: [],
           artifacts,
         };
       }
