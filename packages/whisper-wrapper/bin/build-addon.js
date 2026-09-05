@@ -80,6 +80,42 @@ function resolveLibExecutable(env, arch) {
     // ignore when lib.exe is not on PATH; fall back to manual probing
   }
 
+  // Probe using vswhere.exe if available
+  for (const programFiles of [
+    process.env["ProgramFiles(x86)"],
+    process.env.ProgramFiles,
+    "C:/Program Files (x86)",
+    "C:/Program Files",
+  ].filter(Boolean)) {
+    const vswherePath = path.join(
+      programFiles,
+      "Microsoft Visual Studio",
+      "Installer",
+      "vswhere.exe",
+    );
+    if (fs.existsSync(vswherePath)) {
+      try {
+        const found = execSync(
+          `"${vswherePath}" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find "**/bin/**/lib.exe"`,
+          { stdio: ["ignore", "pipe", "ignore"] },
+        )
+          .toString()
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+        // Prioritize matching hostDir and archDir
+        const preferred = found.filter(
+          (p) => p.includes(hostDir) && p.includes(archDir),
+        );
+        for (const p of [...preferred, ...found]) {
+          addIfExists(p);
+        }
+      } catch (_) {}
+      break;
+    }
+  }
+
   const probeVersionedDir = (dir) => {
     if (!dir || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return;
     const entries = fs
@@ -113,10 +149,31 @@ function resolveLibExecutable(env, arch) {
   probeInstallDir(env.VCToolsInstallDir);
   probeInstallDir(env.VCINSTALLDIR);
   probeInstallDir(env.VSINSTALLDIR && path.join(env.VSINSTALLDIR, "VC"));
-  probeVersionedDir("C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC");
-  probeVersionedDir("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC");
-  probeVersionedDir("C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC");
-  probeVersionedDir("C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC");
+
+  // Probe all Visual Studio root folders across any versions (2019, 2022, 2025, etc.)
+  for (const base of [
+    "C:/Program Files/Microsoft Visual Studio",
+    "C:/Program Files (x86)/Microsoft Visual Studio",
+  ]) {
+    if (fs.existsSync(base)) {
+      try {
+        const years = fs
+          .readdirSync(base, { withFileTypes: true })
+          .filter((e) => e.isDirectory());
+        for (const year of years) {
+          const yearPath = path.join(base, year.name);
+          const editions = fs
+            .readdirSync(yearPath, { withFileTypes: true })
+            .filter((e) => e.isDirectory());
+          for (const edition of editions) {
+            probeVersionedDir(
+              path.join(yearPath, edition.name, "VC", "Tools", "MSVC"),
+            );
+          }
+        }
+      } catch (_) {}
+    }
+  }
 
   return candidates[0] || null;
 }
