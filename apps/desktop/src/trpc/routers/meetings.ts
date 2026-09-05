@@ -2,7 +2,7 @@ import { app, dialog } from "electron";
 import { observable } from "@trpc/server/observable";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { getAppSettings } from "@/db/app-settings";
@@ -37,6 +37,67 @@ const ExportMeetingSchema = z.object({
   id: z.string(),
   format: z.enum(["txt", "json", "srt"]),
 });
+
+function findWavDataChunk(buf: Buffer): { offset: number; size: number } | null {
+  if (buf.length < 44) return null;
+  if (
+    buf.toString("ascii", 0, 4) !== "RIFF" ||
+    buf.toString("ascii", 8, 12) !== "WAVE"
+  ) {
+    return null;
+  }
+  let pos = 12;
+  while (pos + 8 <= buf.length) {
+    const chunkId = buf.toString("ascii", pos, pos + 4);
+    const chunkSize = buf.readUInt32LE(pos + 4);
+    if (chunkId === "data") {
+      return {
+        offset: pos + 8,
+        size: Math.min(chunkSize, buf.length - (pos + 8)),
+      };
+    }
+    pos += 8 + chunkSize;
+  }
+  return null;
+}
+
+function mixWavFiles(micFile: string, sysFile: string, outFile: string): boolean {
+  try {
+    const micBuf = fs.readFileSync(micFile);
+    const sysBuf = fs.readFileSync(sysFile);
+
+    const micChunk = findWavDataChunk(micBuf);
+    const sysChunk = findWavDataChunk(sysBuf);
+    if (!micChunk || !sysChunk) return false;
+
+    const micData = micBuf.subarray(micChunk.offset, micChunk.offset + micChunk.size);
+    const sysData = sysBuf.subarray(sysChunk.offset, sysChunk.offset + sysChunk.size);
+
+    const maxLen = Math.max(micData.length, sysData.length);
+    const outData = Buffer.alloc(maxLen);
+    const numSamples = Math.floor(maxLen / 2);
+
+    for (let i = 0; i < numSamples; i++) {
+      const offset = i * 2;
+      const s1 = offset + 1 < micData.length ? micData.readInt16LE(offset) : 0;
+      const s2 = offset + 1 < sysData.length ? sysData.readInt16LE(offset) : 0;
+      let mixed = s1 + s2;
+      if (mixed > 32767) mixed = 32767;
+      else if (mixed < -32768) mixed = -32768;
+      outData.writeInt16LE(mixed, offset);
+    }
+
+    const header = Buffer.alloc(44);
+    micBuf.copy(header, 0, 0, 44);
+    header.writeUInt32LE(maxLen, 40);
+    header.writeUInt32LE(36 + maxLen, 4);
+
+    fs.writeFileSync(outFile, Buffer.concat([header, outData]));
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 export const meetingsRouter = createRouter({
   startMeeting: procedure
@@ -311,6 +372,7 @@ export const meetingsRouter = createRouter({
           meetingId: string;
           micDataUrl: string | null;
           systemDataUrl: string | null;
+          mixedDataUrl: string | null;
           dataUrl: string;
           durationMs?: number | null;
         }
@@ -340,14 +402,15 @@ export const meetingsRouter = createRouter({
         let micPath: string | null = null;
         let systemPath: string | null = null;
 
-        // Check artifacts for this meeting
+        // Check artifacts for this meeting - prefer processed mic over raw mic
         const mArtifacts = artifacts.filter((a) => a.meetingId === mId);
-        const micArt = mArtifacts.find(
-          (a) =>
-            (a.artifactType === "mic_processed_wav" ||
-              a.artifactType === "mic_wav") &&
-            fs.existsSync(a.path),
-        );
+        const micArt =
+          mArtifacts.find(
+            (a) => a.artifactType === "mic_processed_wav" && fs.existsSync(a.path),
+          ) ||
+          mArtifacts.find(
+            (a) => a.artifactType === "mic_wav" && fs.existsSync(a.path),
+          );
         if (micArt) micPath = micArt.path;
 
         const sysArt = mArtifacts.find(
@@ -375,9 +438,22 @@ export const meetingsRouter = createRouter({
           ]);
         }
 
+        let mixedPath: string | null = null;
+        if (micPath && systemPath) {
+          const meetingDir = path.dirname(micPath);
+          const candidateMixed = path.join(meetingDir, "mixed.wav");
+          if (fs.existsSync(candidateMixed) && fs.statSync(candidateMixed).size > 100) {
+            mixedPath = candidateMixed;
+          } else {
+            const ok = mixWavFiles(micPath, systemPath, candidateMixed);
+            if (ok) mixedPath = candidateMixed;
+          }
+        }
+
+        const mixedDataUrl = mixedPath ? fileToMediaUrl(mixedPath) : null;
         const micDataUrl = micPath ? fileToMediaUrl(micPath) : null;
         const systemDataUrl = systemPath ? fileToMediaUrl(systemPath) : null;
-        const dataUrl = systemDataUrl || micDataUrl;
+        const dataUrl = mixedDataUrl || micDataUrl || systemDataUrl;
 
         if (dataUrl) {
           const mRow = noteMeetings.find((m) => m.id === mId);
@@ -385,6 +461,7 @@ export const meetingsRouter = createRouter({
             meetingId: mId,
             micDataUrl,
             systemDataUrl,
+            mixedDataUrl,
             dataUrl,
             durationMs: mRow?.durationMs,
           };
@@ -434,14 +511,26 @@ export const meetingsRouter = createRouter({
             }
           }
           if (micPath || systemPath) {
+            let mixedPath: string | null = null;
+            if (micPath && systemPath) {
+              const candidateMixed = path.join(dir, "mixed.wav");
+              if (fs.existsSync(candidateMixed) && fs.statSync(candidateMixed).size > 100) {
+                mixedPath = candidateMixed;
+              } else {
+                const ok = mixWavFiles(micPath, systemPath, candidateMixed);
+                if (ok) mixedPath = candidateMixed;
+              }
+            }
+            const mixedDataUrl = mixedPath ? fileToMediaUrl(mixedPath) : null;
             const micDataUrl = micPath ? fileToMediaUrl(micPath) : null;
             const systemDataUrl = systemPath ? fileToMediaUrl(systemPath) : null;
-            const dataUrl = systemDataUrl || micDataUrl;
+            const dataUrl = mixedDataUrl || micDataUrl || systemDataUrl;
             if (dataUrl) {
               sessionsMap[mId] = {
                 meetingId: mId,
                 micDataUrl,
                 systemDataUrl,
+                mixedDataUrl,
                 dataUrl,
               };
               break;
@@ -464,6 +553,7 @@ export const meetingsRouter = createRouter({
             meetingId: m.id,
             micDataUrl: importUrl,
             systemDataUrl: importUrl,
+            mixedDataUrl: importUrl,
             dataUrl: importUrl,
             durationMs: m.durationMs,
           };
@@ -472,6 +562,7 @@ export const meetingsRouter = createRouter({
           meetingId: "note_import",
           micDataUrl: importUrl,
           systemDataUrl: importUrl,
+          mixedDataUrl: importUrl,
           dataUrl: importUrl,
         };
       }
@@ -483,6 +574,7 @@ export const meetingsRouter = createRouter({
           dataUrl: null,
           micDataUrl: null,
           systemDataUrl: null,
+          mixedDataUrl: null,
           sessions: {},
           artifacts,
         };
@@ -495,6 +587,7 @@ export const meetingsRouter = createRouter({
         dataUrl: primarySession.dataUrl,
         micDataUrl: primarySession.micDataUrl,
         systemDataUrl: primarySession.systemDataUrl,
+        mixedDataUrl: primarySession.mixedDataUrl ?? null,
         sessions: sessionsMap,
         sessionKeys,
         artifacts,

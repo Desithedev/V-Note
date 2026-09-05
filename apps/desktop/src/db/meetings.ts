@@ -81,8 +81,8 @@ export async function createTranscriptSegments(
       .insert(transcriptSegments)
       .values(
         segments.map((segment) => ({
-          id: (segment as any).id || crypto.randomUUID(),
           ...segment,
+          id: (segment as any).id || crypto.randomUUID(),
           createdAt: new Date(),
         })),
       )
@@ -98,8 +98,8 @@ export async function createTranscriptSegments(
       .insert(transcriptSegments)
       .values(
         segments.map((segment) => ({
-          id: (segment as any).id || crypto.randomUUID(),
           ...segment,
+          id: (segment as any).id || crypto.randomUUID(),
           createdAt: new Date(),
         })),
       )
@@ -431,7 +431,7 @@ export async function getNoteAudioArtifacts(
     meetingId: a.meetingId,
     artifactType: a.artifactType as NoteAudioArtifact["artifactType"],
     path: a.path,
-    sizeBytes: a.sizeBytes,
+    sizeBytes: a.sizeBytes ?? 0,
   }));
 }
 

@@ -159,7 +159,7 @@ export default function Note({
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const sessionKeys = audioData?.sessionKeys ?? [];
   const activeSessionId = selectedSessionId ?? sessionKeys[0];
-  const activeSession = activeSessionId && audioData?.sessions ? audioData.sessions[activeSessionId] : null;
+  const activeSession = activeSessionId && audioData?.sessions ? (audioData.sessions as Record<string, any>)[activeSessionId] : null;
   const currentAudioSrc = activeSession?.dataUrl ?? audioData?.dataUrl ?? undefined;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -499,7 +499,7 @@ export default function Note({
                 {/* Danh sách các file xếp từ trên xuống dưới */}
                 <div className="flex flex-col gap-2">
                   {sessionKeys.map((sId, sIdx) => {
-                    const session = audioData?.sessions?.[sId];
+                    const session = (audioData?.sessions as Record<string, any>)?.[sId];
                     const isCurrent = activeSessionId === sId;
                     const isPlaying = isCurrent && isPlayingAudio;
 

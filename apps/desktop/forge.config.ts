@@ -414,10 +414,10 @@ const config: ForgeConfig = {
       }
     },
   },
+  outDir: "out-installer",
   packagerConfig: {
     // Keep installer builds separate from ad-hoc/manual bundles so a locked
     // previous runtime cannot prevent Forge from producing the installer.
-    out: "out-installer",
     asar: {
       unpack:
         "{*.node,*.dylib,*.so,*.dll,*.metal,**/node_modules/@prismical/whisper-wrapper/**,**/whisper.cpp/**,**/.vite/build/whisper-worker-fork.js,**/node_modules/jest-worker/**,**/onnxruntime-node/bin/**}",

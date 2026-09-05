@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlignLeft,
   Bot,
@@ -299,6 +299,8 @@ interface NoteAssetsPanelProps {
   isExpanded: boolean;
   onClose: () => void;
   onToggleExpanded: () => void;
+  transcript?: TranscriptEvent[];
+  meetingState?: MeetingRuntimeState;
   noteId?: number;
 }
 
@@ -308,6 +310,8 @@ export function NoteAssetsPanel({
   isExpanded,
   onClose,
   onToggleExpanded,
+  transcript: propTranscript,
+  meetingState: propMeetingState,
   noteId,
 }: NoteAssetsPanelProps) {
   const { t } = useTranslation();
@@ -355,12 +359,24 @@ export function NoteAssetsPanel({
 
   // Audio Playback Player State
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentAudioSrc, setCurrentAudioSrc] = useState<string | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [currentAudioTime, setCurrentAudioTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
 
   const effectiveNoteId = noteId ?? noteEditor?.noteId;
+
+  // Reset audio state when switching notes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setIsPlayingAudio(false);
+    setCurrentAudioTime(0);
+    setAudioDuration(0);
+    setCurrentAudioSrc(null);
+  }, [effectiveNoteId]);
 
   // Real-time live partial text subscription
   api.meetings.partialTranscriptUpdates.useSubscription(undefined, {
@@ -379,7 +395,7 @@ export function NoteAssetsPanel({
     refetchInterval: 1000,
   });
   const meetingState: MeetingRuntimeState =
-    meetingStateQuery.data?.state ?? "idle";
+    propMeetingState ?? meetingStateQuery.data?.state ?? "idle";
 
   useEffect(() => {
     if (meetingState === "idle") {
@@ -410,9 +426,25 @@ export function NoteAssetsPanel({
     }
   }, [meetingState, effectiveNoteId]);
 
+  // Sync initial / default audio source when audio data arrives
+  useEffect(() => {
+    if (noteAudioQuery.data?.hasAudio) {
+      const defaultSrc =
+        (noteAudioQuery.data as any).mixedDataUrl ||
+        noteAudioQuery.data.dataUrl ||
+        noteAudioQuery.data.micDataUrl ||
+        noteAudioQuery.data.systemDataUrl ||
+        null;
+      if (defaultSrc && !currentAudioSrc) {
+        setCurrentAudioSrc(defaultSrc);
+      }
+    }
+  }, [noteAudioQuery.data, currentAudioSrc]);
+
   const hasAudio = Boolean(
     noteAudioQuery.data?.hasAudio &&
-      (noteAudioQuery.data?.dataUrl ||
+      ((noteAudioQuery.data as any)?.mixedDataUrl ||
+        noteAudioQuery.data?.dataUrl ||
         noteAudioQuery.data?.micDataUrl ||
         noteAudioQuery.data?.systemDataUrl ||
         (noteAudioQuery.data?.sessionKeys &&
@@ -539,18 +571,65 @@ export function NoteAssetsPanel({
     updateSegmentMutation.mutate({ id: segmentId, text: trimmed });
   };
 
-  useEffect(() => {
-    if (audioRef.current && noteAudioQuery.data?.hasAudio) {
-      const src =
-        noteAudioQuery.data.systemDataUrl ||
-        noteAudioQuery.data.micDataUrl ||
-        noteAudioQuery.data.dataUrl;
-      if (src && audioRef.current.src !== src) {
-        audioRef.current.src = src;
-        audioRef.current.load();
+  const playAudio = useCallback(
+    (src: string, targetSec: number = 0) => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (playStopTimerRef.current) {
+        clearTimeout(playStopTimerRef.current);
+        playStopTimerRef.current = null;
       }
-    }
-  }, [noteAudioQuery.data]);
+
+      const clampedSec = Math.max(0, targetSec);
+
+      if (currentAudioSrc !== src || audio.src !== src) {
+        setCurrentAudioSrc(src);
+        audio.src = src;
+
+        const onReady = () => {
+          audio.removeEventListener("loadedmetadata", onReady);
+          audio.removeEventListener("canplay", onReady);
+          try {
+            audio.currentTime = clampedSec;
+          } catch {}
+          audio
+            .play()
+            .then(() => setIsPlayingAudio(true))
+            .catch((err) => {
+              console.warn("[AudioPlayer] Play failed after metadata loaded:", err);
+            });
+        };
+
+        if (audio.readyState >= 1) {
+          try {
+            audio.currentTime = clampedSec;
+          } catch {}
+          audio
+            .play()
+            .then(() => setIsPlayingAudio(true))
+            .catch((err) => {
+              console.warn("[AudioPlayer] Play failed:", err);
+            });
+        } else {
+          audio.addEventListener("loadedmetadata", onReady, { once: true });
+          audio.addEventListener("canplay", onReady, { once: true });
+          audio.load();
+        }
+      } else {
+        try {
+          audio.currentTime = clampedSec;
+        } catch {}
+        audio
+          .play()
+          .then(() => setIsPlayingAudio(true))
+          .catch((err) => {
+            console.warn("[AudioPlayer] Play failed:", err);
+          });
+      }
+    },
+    [currentAudioSrc],
+  );
 
   const handlePlayFromTime = (
     timeMs: number,
@@ -558,105 +637,88 @@ export function NoteAssetsPanel({
     meetingId?: string,
     rawStartTimeMs?: number,
   ) => {
-    if (!audioRef.current) return;
-    if (playStopTimerRef.current) {
-      clearTimeout(playStopTimerRef.current);
-      playStopTimerRef.current = null;
-    }
+    const exactMs = rawStartTimeMs !== undefined ? rawStartTimeMs : timeMs;
+    const targetSec = Math.max(0, exactMs / 1000);
 
     const audioData = noteAudioQuery.data;
-    const session = meetingId && audioData?.sessions?.[meetingId]
-      ? audioData.sessions[meetingId]
-      : null;
+    const sessions = audioData?.sessions as
+      | Record<
+          string,
+          {
+            meetingId: string;
+            micDataUrl: string | null;
+            systemDataUrl: string | null;
+            mixedDataUrl?: string | null;
+            dataUrl: string;
+            durationMs?: number | null;
+          }
+        >
+      | undefined;
+    const session = meetingId && sessions ? sessions[meetingId] : null;
 
     let chosenSrc =
+      session?.mixedDataUrl ??
       session?.dataUrl ??
+      (audioData as any)?.mixedDataUrl ??
+      audioData?.dataUrl ??
       session?.micDataUrl ??
       session?.systemDataUrl ??
-      audioData?.dataUrl ??
       audioData?.micDataUrl ??
       audioData?.systemDataUrl ??
       null;
 
-    if (speaker === "them" && (session?.systemDataUrl || audioData?.systemDataUrl)) {
-      chosenSrc = session?.systemDataUrl ?? audioData?.systemDataUrl ?? chosenSrc;
-    } else if (speaker === "you" && (session?.micDataUrl || audioData?.micDataUrl)) {
-      chosenSrc = session?.micDataUrl ?? audioData?.micDataUrl ?? chosenSrc;
+    if (!session?.mixedDataUrl && !(audioData as any)?.mixedDataUrl) {
+      if (speaker === "them" && (session?.systemDataUrl || audioData?.systemDataUrl)) {
+        chosenSrc = session?.systemDataUrl ?? audioData?.systemDataUrl ?? chosenSrc;
+      } else if (speaker === "you" && (session?.micDataUrl || audioData?.micDataUrl)) {
+        chosenSrc = session?.micDataUrl ?? audioData?.micDataUrl ?? chosenSrc;
+      }
     }
 
     if (!chosenSrc) {
       toast.info("Đang nạp tệp âm thanh...");
       noteAudioQuery.refetch().then((res) => {
         const freshData = res.data;
-        const freshSession = meetingId && freshData?.sessions?.[meetingId] ? freshData.sessions[meetingId] : null;
+        const freshSessions = freshData?.sessions as
+          | Record<
+              string,
+              {
+                meetingId: string;
+                micDataUrl: string | null;
+                systemDataUrl: string | null;
+                mixedDataUrl?: string | null;
+                dataUrl: string;
+                durationMs?: number | null;
+              }
+            >
+          | undefined;
+        const freshSession =
+          meetingId && freshSessions ? freshSessions[meetingId] : null;
         let freshSrc =
+          freshSession?.mixedDataUrl ??
           freshSession?.dataUrl ??
+          (freshData as any)?.mixedDataUrl ??
+          freshData?.dataUrl ??
           freshSession?.micDataUrl ??
           freshSession?.systemDataUrl ??
-          freshData?.dataUrl ??
           freshData?.micDataUrl ??
           freshData?.systemDataUrl ??
           null;
-        if (speaker === "them" && (freshSession?.systemDataUrl || freshData?.systemDataUrl)) {
-          freshSrc = freshSession?.systemDataUrl ?? freshData?.systemDataUrl ?? freshSrc;
-        } else if (speaker === "you" && (freshSession?.micDataUrl || freshData?.micDataUrl)) {
-          freshSrc = freshSession?.micDataUrl ?? freshData?.micDataUrl ?? freshSrc;
+        if (!freshSession?.mixedDataUrl && !(freshData as any)?.mixedDataUrl) {
+          if (speaker === "them" && (freshSession?.systemDataUrl || freshData?.systemDataUrl)) {
+            freshSrc = freshSession?.systemDataUrl ?? freshData?.systemDataUrl ?? freshSrc;
+          } else if (speaker === "you" && (freshSession?.micDataUrl || freshData?.micDataUrl)) {
+            freshSrc = freshSession?.micDataUrl ?? freshData?.micDataUrl ?? freshSrc;
+          }
         }
-        if (freshSrc && audioRef.current) {
-          audioRef.current.src = freshSrc;
-          try {
-            audioRef.current.currentTime = targetSec;
-          } catch {}
-          audioRef.current
-            .play()
-            .then(() => setIsPlayingAudio(true))
-            .catch(() => {});
+        if (freshSrc) {
+          playAudio(freshSrc, targetSec);
         }
       });
       return;
     }
 
-    // Use rawStartTimeMs if playing from specific meeting session, otherwise timeMs
-    const exactMs = rawStartTimeMs !== undefined ? rawStartTimeMs : timeMs;
-    const targetSec = Math.max(0, exactMs / 1000);
-
-    if (chosenSrc && audioRef.current.src !== chosenSrc) {
-      audioRef.current.src = chosenSrc;
-      // Explicitly reset the media element before seeking. Chromium can keep
-      // the previous artifact's timeline when the source changes between mic
-      // and system sessions, which made the first click appear to do nothing.
-      audioRef.current.load();
-    }
-
-    try {
-      audioRef.current.currentTime = targetSec;
-    } catch {}
-
-    const playPromise = audioRef.current.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          setIsPlayingAudio(true);
-          if (audioRef.current) {
-            audioRef.current.currentTime = targetSec;
-          }
-        })
-        .catch((err) => {
-          console.warn("[AudioPlayer] Play error:", err);
-          if (audioRef.current) {
-            audioRef.current.onloadedmetadata = () => {
-              if (audioRef.current) {
-                audioRef.current.currentTime = targetSec;
-                audioRef.current
-                  .play()
-                  .then(() => setIsPlayingAudio(true))
-                  .catch(() => {});
-                audioRef.current.onloadedmetadata = null;
-              }
-            };
-          }
-        });
-    }
+    playAudio(chosenSrc, targetSec);
   };
 
   // Play a specific time range (e.g. highlighted text region)
@@ -669,16 +731,14 @@ export function NoteAssetsPanel({
     rawEndTimeMs?: number,
   ) => {
     handlePlayFromTime(startTimeMs, speaker, meetingId, rawStartTimeMs);
-    const startMs = rawStartTimeMs ?? startTimeMs;
-    const endMs = rawEndTimeMs ?? endTimeMs;
+    const startMs = rawStartTimeMs !== undefined ? rawStartTimeMs : startTimeMs;
+    const endMs = rawEndTimeMs !== undefined ? rawEndTimeMs : endTimeMs;
     if (endMs && endMs > startMs) {
       if (playStopTimerRef.current) {
         clearTimeout(playStopTimerRef.current);
       }
       const durationSec = (endMs - startMs) / 1000;
       playStopTimerRef.current = setTimeout(() => {
-        // Do not rely on isPlayingAudio here: this callback closes over the
-        // value from before audio.play() resolves.
         if (audioRef.current) {
           audioRef.current.pause();
           setIsPlayingAudio(false);
@@ -738,38 +798,32 @@ export function NoteAssetsPanel({
     if (!audioRef.current) return;
     const audioData = noteAudioQuery.data;
     const src =
-      audioRef.current.src ||
-      audioData?.systemDataUrl ||
+      currentAudioSrc ||
+      (audioData as any)?.mixedDataUrl ||
+      audioData?.dataUrl ||
       audioData?.micDataUrl ||
-      audioData?.dataUrl;
+      audioData?.systemDataUrl;
 
     if (!src) {
       toast.info("Đang nạp tệp âm thanh...");
       noteAudioQuery.refetch().then((res) => {
-        const freshSrc = res.data?.dataUrl || res.data?.systemDataUrl || res.data?.micDataUrl;
-        if (freshSrc && audioRef.current) {
-          audioRef.current.src = freshSrc;
-          audioRef.current.play().then(() => setIsPlayingAudio(true)).catch(() => {});
+        const freshSrc =
+          (res.data as any)?.mixedDataUrl ||
+          res.data?.dataUrl ||
+          res.data?.micDataUrl ||
+          res.data?.systemDataUrl;
+        if (freshSrc) {
+          playAudio(freshSrc, currentAudioTime);
         }
       });
       return;
-    }
-
-    if (!audioRef.current.src || audioRef.current.src !== src) {
-      audioRef.current.src = src;
     }
 
     if (isPlayingAudio) {
       audioRef.current.pause();
       setIsPlayingAudio(false);
     } else {
-      audioRef.current
-        .play()
-        .then(() => setIsPlayingAudio(true))
-        .catch((err) => {
-          console.warn("[AudioPlayer] Play error:", err);
-          noteAudioQuery.refetch();
-        });
+      playAudio(src, currentAudioTime);
     }
   };
 
@@ -822,7 +876,7 @@ export function NoteAssetsPanel({
     onError: () => {},
   });
 
-  const transcript = liveTranscript;
+  const transcript = (propTranscript && propTranscript.length > 0) ? propTranscript : liveTranscript;
   const hasTranscript = transcript.length > 0;
 
   const handleCopyTranscript = async () => {
@@ -1331,10 +1385,12 @@ export function NoteAssetsPanel({
                   <AnimatePresence initial={false}>
                     {sentences.map((sentence) => {
                       const isUser = sentence.speaker === "you";
+                      const sStartMs = sentence.rawStartTimeMs ?? sentence.startTimeMs;
+                      const sEndMs = sentence.rawEndTimeMs ?? sentence.endTimeMs;
                       const isCurrentlyPlaying =
                         isPlayingAudio &&
-                        currentAudioTime * 1000 >= sentence.startTimeMs &&
-                        currentAudioTime * 1000 <= sentence.endTimeMs;
+                        currentAudioTime * 1000 >= sStartMs &&
+                        currentAudioTime * 1000 <= sEndMs;
 
                       return (
                         <motion.div
@@ -1369,17 +1425,22 @@ export function NoteAssetsPanel({
                               className="h-6 w-6 shrink-0 rounded-full text-muted-foreground hover:text-foreground hover:bg-background/60 cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handlePlayFromTime(
-                                  sentence.startTimeMs,
-                                  sentence.speaker,
-                                  sentence.meetingId,
-                                  sentence.rawStartTimeMs,
-                                );
+                                if (isCurrentlyPlaying) {
+                                  audioRef.current?.pause();
+                                  setIsPlayingAudio(false);
+                                } else {
+                                  handlePlayFromTime(
+                                    sentence.startTimeMs,
+                                    sentence.speaker,
+                                    sentence.meetingId,
+                                    sentence.rawStartTimeMs,
+                                  );
+                                }
                               }}
-                              title="Phát câu này"
+                              title={isCurrentlyPlaying ? "Tạm dừng" : "Phát câu này"}
                             >
                               {isCurrentlyPlaying ? (
-                                <Volume2 className="h-3.5 w-3.5 animate-pulse text-primary fill-current" />
+                                <Pause className="h-3.5 w-3.5 text-primary fill-current" />
                               ) : (
                                 <Play className="h-3 w-3 opacity-70 hover:opacity-100 fill-current" />
                               )}
@@ -1440,10 +1501,12 @@ export function NoteAssetsPanel({
                   <AnimatePresence initial={false}>
                     {completedBlocks.map((block) => {
                       const isUser = block.speaker === "you";
+                      const bStartMs = block.rawStartTimeMs ?? block.startTimeMs;
+                      const bEndMs = block.rawEndTimeMs ?? block.endTimeMs;
                       const isCurrentlyPlaying =
                         isPlayingAudio &&
-                        currentAudioTime * 1000 >= block.startTimeMs &&
-                        currentAudioTime * 1000 <= block.endTimeMs;
+                        currentAudioTime * 1000 >= bStartMs &&
+                        currentAudioTime * 1000 <= bEndMs;
 
                       return (
                         <motion.div
@@ -1505,17 +1568,22 @@ export function NoteAssetsPanel({
                               className="h-7 w-7 shrink-0 rounded-full text-zinc-400 hover:text-zinc-100 hover:bg-white/10 cursor-pointer transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handlePlayFromTime(
-                                  block.startTimeMs,
-                                  block.speaker,
-                                  block.meetingId,
-                                  block.rawStartTimeMs,
-                                );
+                                if (isCurrentlyPlaying) {
+                                  audioRef.current?.pause();
+                                  setIsPlayingAudio(false);
+                                } else {
+                                  handlePlayFromTime(
+                                    block.startTimeMs,
+                                    block.speaker,
+                                    block.meetingId,
+                                    block.rawStartTimeMs,
+                                  );
+                                }
                               }}
-                              title="Phát đoạn này"
+                              title={isCurrentlyPlaying ? "Tạm dừng" : "Phát đoạn này"}
                             >
                               {isCurrentlyPlaying ? (
-                                <Volume2 className="h-4 w-4 animate-pulse text-emerald-400 fill-current" />
+                                <Pause className="h-4 w-4 text-emerald-400 fill-current" />
                               ) : (
                                 <Play className="h-3.5 w-3.5 opacity-70 hover:opacity-100 fill-current" />
                               )}
@@ -1725,9 +1793,11 @@ export function NoteAssetsPanel({
             <audio
               ref={audioRef}
               src={
-                noteAudioQuery.data?.systemDataUrl ||
-                noteAudioQuery.data?.micDataUrl ||
+                currentAudioSrc ||
+                (noteAudioQuery.data as any)?.mixedDataUrl ||
                 noteAudioQuery.data?.dataUrl ||
+                noteAudioQuery.data?.micDataUrl ||
+                noteAudioQuery.data?.systemDataUrl ||
                 undefined
               }
               preload="auto"
