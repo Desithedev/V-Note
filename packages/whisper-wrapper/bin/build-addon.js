@@ -245,7 +245,8 @@ if (variants.length === 0) {
 }
 
 for (const variant of variants) {
-  const existingBinary = path.join(pkgDir, "native", variant.name, "whisper.node");
+  const targetDir = path.join(pkgDir, "native", variant.name);
+  const existingBinary = path.join(targetDir, "whisper.node");
   if (fs.existsSync(existingBinary) && !process.env.FORCE_WHISPER_REBUILD) {
     console.log(
       `[build-addon] Found existing prebuilt native binary at native/${variant.name}/whisper.node, skipping rebuild.`,
@@ -307,7 +308,6 @@ for (const variant of variants) {
 
     const builtBinary = path.join(buildVariantDir, "Release", "whisper.node");
     if (fs.existsSync(builtBinary)) {
-      const targetDir = path.join(pkgDir, "native", variant.name);
       fs.mkdirSync(targetDir, { recursive: true });
       fs.copyFileSync(builtBinary, path.join(targetDir, "whisper.node"));
       console.log(`[build-addon] copied to native/${variant.name}/whisper.node`);
@@ -326,13 +326,15 @@ for (const variant of variants) {
 
   if (platform === "darwin") {
     const targetBinary = path.join(targetDir, "whisper.node");
-    try {
-      run(`codesign --force --sign - "${targetBinary}"`);
-      console.log("[build-addon] codesigned", targetBinary);
-    } catch (err) {
-      console.warn(
-        `[build-addon] warning: codesign failed for ${targetBinary}: ${err.message}`,
-      );
+    if (fs.existsSync(targetBinary)) {
+      try {
+        run(`codesign --force --sign - "${targetBinary}"`);
+        console.log("[build-addon] codesigned", targetBinary);
+      } catch (err) {
+        console.warn(
+          `[build-addon] warning: codesign failed for ${targetBinary}: ${err.message}`,
+        );
+      }
     }
   }
 
