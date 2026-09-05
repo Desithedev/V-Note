@@ -343,6 +343,11 @@ for (const variant of variants) {
     "--CD node_runtime=node",
   ];
 
+  if (platform === "win32") {
+    cmakeParts.push('-G "Visual Studio 17 2022"');
+    cmakeParts.push(`-a ${arch}`);
+  }
+
   const propagateCMakeBool = (key) => {
     const value = env[key];
     if (typeof value === "string" && value.length > 0) {
