@@ -13,7 +13,26 @@ const configs = [
 (async () => {
   for (const configFile of configs) {
     console.log(`Building Vite target: ${configFile}`);
-    await build({ configFile: resolve(__dirname, "..", configFile), mode: "production" });
+    const extraOptions =
+      configFile === "vite.main.config.mts"
+        ? {
+            define: {
+              MAIN_WINDOW_VITE_DEV_SERVER_URL: "undefined",
+              MAIN_WINDOW_VITE_NAME: JSON.stringify("main_window"),
+              ONBOARDING_WINDOW_VITE_DEV_SERVER_URL: "undefined",
+              ONBOARDING_WINDOW_VITE_NAME: JSON.stringify("onboarding_window"),
+              RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL: "undefined",
+              RECORDING_WIDGET_WINDOW_VITE_NAME: JSON.stringify(
+                "recording_widget_window",
+              ),
+            },
+          }
+        : {};
+    await build({
+      configFile: resolve(__dirname, "..", configFile),
+      mode: "production",
+      ...extraOptions,
+    });
   }
   console.log("Vite release bundles completed");
 })().catch((error) => {

@@ -4,14 +4,6 @@ import { resolve } from "path";
 // https://vitejs.dev/config
 export default defineConfig({
   define: {
-    // Electron Forge normally injects these constants. The standalone Vite
-    // packaging path needs explicit production values.
-    MAIN_WINDOW_VITE_DEV_SERVER_URL: "undefined",
-    MAIN_WINDOW_VITE_NAME: JSON.stringify("main_window"),
-    ONBOARDING_WINDOW_VITE_DEV_SERVER_URL: "undefined",
-    ONBOARDING_WINDOW_VITE_NAME: JSON.stringify("onboarding_window"),
-    RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL: "undefined",
-    RECORDING_WIDGET_WINDOW_VITE_NAME: JSON.stringify("recording_widget_window"),
     __BUNDLED_POSTHOG_API_KEY: JSON.stringify(
       process.env.POSTHOG_API_KEY || "",
     ),
@@ -45,14 +37,9 @@ export default defineConfig({
       },
       output: {
         entryFileNames: "[name].js",
-        // Electron loads the main entry as CommonJS. This also provides the
-        // __dirname/__filename globals expected by node-cron and other CJS
-        // dependencies bundled into the entry.
         format: "cjs",
       },
       external: [
-        // Keep Node/Electron built-ins out of the main-process bundle when
-        // invoking Vite directly (Electron Forge normally injects these).
         "child_process",
         "path",
         "fs",
