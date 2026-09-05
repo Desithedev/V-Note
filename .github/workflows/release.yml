@@ -16,6 +16,8 @@ jobs:
   build:
     name: Build ${{ matrix.os == 'macos' && 'macOS' || 'Windows' }} (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
+    env:
+      DEVELOPER_CERT_BASE64: ${{ secrets.DEVELOPER_CERT_BASE64 }}
     strategy:
       matrix:
         include:
@@ -112,18 +114,18 @@ jobs:
         run: pnpm download-node
 
       - name: Import Developer ID cert
-        if: matrix.os == 'macos' && github.event_name != 'pull_request' && secrets.DEVELOPER_CERT_BASE64 != ''
+        if: matrix.os == 'macos' && github.event_name != 'pull_request' && env.DEVELOPER_CERT_BASE64 != ''
         uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.DEVELOPER_CERT_BASE64 }}
           p12-password: ${{ secrets.DEVELOPER_CERT_PASSPHRASE }}
 
       - name: List signing identities (debug)
-        if: matrix.os == 'macos' && github.event_name != 'pull_request' && secrets.DEVELOPER_CERT_BASE64 != ''
+        if: matrix.os == 'macos' && github.event_name != 'pull_request' && env.DEVELOPER_CERT_BASE64 != ''
         run: security find-identity -v -p codesigning
 
       - name: Build artifacts (macOS release - signed)
-        if: matrix.os == 'macos' && github.event_name != 'pull_request' && secrets.DEVELOPER_CERT_BASE64 != ''
+        if: matrix.os == 'macos' && github.event_name != 'pull_request' && env.DEVELOPER_CERT_BASE64 != ''
         working-directory: apps/desktop
         env:
           SKIP_CODESIGNING: false
@@ -146,7 +148,7 @@ jobs:
           pnpm make:${{ matrix.arch }}
 
       - name: Build artifacts (macOS release - unsigned)
-        if: matrix.os == 'macos' && (github.event_name == 'pull_request' || secrets.DEVELOPER_CERT_BASE64 == '')
+        if: matrix.os == 'macos' && (github.event_name == 'pull_request' || env.DEVELOPER_CERT_BASE64 == '')
         working-directory: apps/desktop
         env:
           SKIP_CODESIGNING: "true"
