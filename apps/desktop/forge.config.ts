@@ -75,6 +75,8 @@ const config: ForgeConfig = {
       const projectRoot = normalize(__dirname);
       // In a monorepo, node_modules are typically at the root level
       const monorepoRoot = join(projectRoot, "../../"); // Go up to monorepo root
+      const localNodeModules = join(projectRoot, "node_modules");
+      const rootNodeModules = join(monorepoRoot, "node_modules");
 
       // Copy platform-specific Node.js binary
       console.log(`Copying Node.js binary for ${platform}-${arch}...`);
@@ -152,8 +154,6 @@ const config: ForgeConfig = {
 
       // Copy external dependencies to local node_modules
       console.error("Copying external dependencies to local node_modules");
-      const localNodeModules = join(projectRoot, "node_modules");
-      const rootNodeModules = join(monorepoRoot, "node_modules");
 
       // Ensure local node_modules directory exists
       if (!existsSync(localNodeModules)) {
