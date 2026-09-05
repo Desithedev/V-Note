@@ -622,8 +622,8 @@ const config: ForgeConfig = {
   publishers: [
     new PublisherGithub({
       repository: {
-        owner: "prismicalhq",
-        name: "prismical",
+        owner: "Desithedev",
+        name: "V-Note",
       },
       prerelease: true,
       draft: true, // Create draft releases first for review

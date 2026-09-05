@@ -211,8 +211,8 @@ jobs:
         run: |
           cd apps/desktop/out/make
           for dmg in *.dmg; do
-            mv "$dmg" "Prismical-macos-${{ matrix.arch }}.dmg"
-            echo "Renamed $dmg → Prismical-macos-${{ matrix.arch }}.dmg"
+            mv "$dmg" "V-Note-macos-${{ matrix.arch }}.dmg"
+            echo "Renamed $dmg → V-Note-macos-${{ matrix.arch }}.dmg"
           done
 
       - name: Rename artifacts (Windows)
@@ -221,8 +221,8 @@ jobs:
         run: |
           cd apps/desktop/out/make/squirrel.windows/${{ matrix.arch }}
           for exe in *.exe; do
-            mv "$exe" "Prismical-windows-${{ matrix.arch }}.exe"
-            echo "Renamed $exe → Prismical-windows-${{ matrix.arch }}.exe"
+            mv "$exe" "V-Note-windows-${{ matrix.arch }}.exe"
+            echo "Renamed $exe → V-Note-windows-${{ matrix.arch }}.exe"
           done
 
       - name: Upload artifacts (macOS)
@@ -231,7 +231,7 @@ jobs:
         with:
           name: macos-${{ matrix.arch }}
           path: |
-            apps/desktop/out/make/Prismical-macos-${{ matrix.arch }}.dmg
+            apps/desktop/out/make/V-Note-macos-${{ matrix.arch }}.dmg
             apps/desktop/out/make/zip/darwin/${{ matrix.arch }}/*.zip
 
       - name: Upload artifacts (Windows)
@@ -240,7 +240,7 @@ jobs:
         with:
           name: windows-${{ matrix.arch }}
           path: |
-            apps/desktop/out/make/squirrel.windows/${{ matrix.arch }}/Prismical-windows-${{ matrix.arch }}.exe
+            apps/desktop/out/make/squirrel.windows/${{ matrix.arch }}/V-Note-windows-${{ matrix.arch }}.exe
             apps/desktop/out/make/squirrel.windows/${{ matrix.arch }}/*.nupkg
             apps/desktop/out/make/squirrel.windows/${{ matrix.arch }}/RELEASES
 
@@ -372,7 +372,7 @@ jobs:
 
           # --- Build release notes ---
           {
-            echo "## Prismical Desktop v${VERSION}"
+            echo "## V-Note Desktop v${VERSION}"
             echo ""
 
             FEATURES=$(format_commits features)
@@ -426,8 +426,8 @@ jobs:
             echo "### Installation"
             echo ""
             echo "**macOS**:"
-            echo "- **DMG**: Download and open the DMG file, then drag Prismical to your Applications folder"
-            echo "- **ZIP**: Download and extract the ZIP file, then drag Prismical to your Applications folder"
+            echo "- **DMG**: Download and open the DMG file, then drag V-Note to your Applications folder"
+            echo "- **ZIP**: Download and extract the ZIP file, then drag V-Note to your Applications folder"
             echo ""
             echo "**Windows**:"
             echo "- Download and run the .exe installer"
@@ -551,7 +551,7 @@ jobs:
           prerelease: ${{ steps.release_context.outputs.is_prerelease == 'true' }}
           tag_name: ${{ steps.release_context.outputs.current_tag }}
           target_commitish: ${{ steps.release_context.outputs.current_sha }}
-          name: Prismical Desktop v${{ steps.package_version.outputs.version }}
+          name: V-Note Desktop v${{ steps.package_version.outputs.version }}
           body_path: release-notes.md
           files: |
             release-notes.json
