@@ -242,6 +242,10 @@
         "title": "Ghi chú",
         "description": "Quản lý và soạn thảo ghi chú"
       },
+      "events": {
+        "title": "Sự kiện & Lịch",
+        "description": "Quản lý sự kiện, cuộc họp và lịch làm việc"
+      },
       "skills": {
         "title": "Kỹ năng AI",
         "description": "Quản lý câu lệnh AI giúp xử lý ghi chú — viết tiếp, viết lại, tóm tắt"
@@ -639,10 +643,39 @@
       }
     },
     "events": {
-      "title": "Tất cả sự kiện",
+      "title": "Sự kiện & Lịch",
+      "calendarView": "Lịch",
+      "listView": "Danh sách",
+      "addEvent": "Thêm sự kiện",
+      "editEvent": "Sửa sự kiện",
+      "deleteEvent": "Xóa sự kiện",
+      "deleteConfirm": "Bạn có chắc chắn muốn xóa sự kiện này không? Thao tác này sẽ không thể hoàn tác.",
+      "today": "Hôm nay",
+      "allDay": "Cả ngày",
+      "searchPlaceholder": "Tìm kiếm sự kiện...",
+      "noEventsDay": "Không có sự kiện nào trong ngày này",
+      "takeNotes": "Tạo ghi chú",
+      "joinMeeting": "Tham gia họp",
       "empty": {
-        "title": "Không có sự kiện sắp tới",
-        "description": "Các sự kiện lịch của bạn sẽ hiển thị tại đây"
+        "title": "Chưa có sự kiện nào",
+        "description": "Tạo sự kiện hoặc cuộc họp mới để theo dõi trên lịch và ghi chú thông minh"
+      },
+      "form": {
+        "createTitle": "Thêm sự kiện mới",
+        "editTitle": "Chỉnh sửa sự kiện",
+        "titleLabel": "Tiêu đề sự kiện",
+        "titlePlaceholder": "VD: Họp giao ban, Phỏng vấn ứng viên...",
+        "allDayLabel": "Diễn ra cả ngày",
+        "startLabel": "Thời gian bắt đầu",
+        "endLabel": "Thời gian kết thúc",
+        "meetingUrlLabel": "Link họp trực tuyến (Google Meet, Zoom, Teams...)",
+        "meetingUrlPlaceholder": "https://meet.google.com/xxx-xxxx-xxx",
+        "calendarUrlLabel": "Link lịch ngoài (tùy chọn)",
+        "calendarUrlPlaceholder": "https://calendar.google.com/...",
+        "colorLabel": "Màu hiển thị",
+        "save": "Lưu thay đổi",
+        "create": "Tạo sự kiện",
+        "cancel": "Hủy"
       }
     },
     "notes": {
@@ -754,6 +787,108 @@
           "description": "Kết nối Google Calendar hoặc Outlook để tự động ghi chép cuộc họp",
           "button": "Kết nối lịch"
         }
+      },
+      "sidebarButtonLabel": "Ghi chú",
+      "searchButtonLabel": "Tìm kiếm",
+      "sort": {
+        "aria": "Sắp xếp ghi chú",
+        "updatedAt": "Cập nhật",
+        "createdAt": "Ngày tạo",
+        "title": "Tiêu đề"
+      },
+      "scope": {
+        "all": "Tất cả ghi chú",
+        "tagsSuffix": "thẻ"
+      }
+    },
+    "tags": {
+      "title": "Thẻ",
+      "summary_one": "{{count}} thẻ · {{notes}}",
+      "summary_other": "{{count}} thẻ · {{notes}}",
+      "searchPlaceholder": "Tìm kiếm thẻ…",
+      "sortRecent": "Gần đây",
+      "sortName": "Tên",
+      "empty": "Chưa có thẻ nào. Thêm thẻ từ bất kỳ ghi chú nào để sắp xếp công việc.",
+      "deleteConfirmTitle": "Xóa thẻ?",
+      "deleteConfirmDescription_one": "Thẻ này sẽ bị xóa khỏi {{count}} ghi chú. Các ghi chú này sẽ không bị ảnh hưởng. Tiếp tục?",
+      "deleteConfirmDescription_other": "Thẻ này sẽ bị xóa khỏi {{count}} ghi chú. Các ghi chú này sẽ không bị ảnh hưởng. Tiếp tục?",
+      "noteCount_one": "{{count}} ghi chú",
+      "noteCount_other": "{{count}} ghi chú",
+      "menu": {
+        "favorite": "Yêu thích",
+        "unfavorite": "Bỏ yêu thích",
+        "edit": "Chỉnh sửa",
+        "delete": "Xóa"
+      },
+      "picker": {
+        "placeholder": "Tìm hoặc tạo thẻ mới…",
+        "noResults": "Không tìm thấy thẻ nào.",
+        "recent": "Gần đây",
+        "all": "Tất cả",
+        "create": "Tạo thẻ <1>#{{name}}</1>"
+      },
+      "editDialog": {
+        "title": "Chỉnh sửa thẻ",
+        "nameLabel": "Tên thẻ",
+        "colorLabel": "Màu sắc",
+        "previewLabel": "Xem trước",
+        "previewName": "thẻ",
+        "nameError": "Chỉ dùng chữ cái viết thường, số, '-' hoặc '_' (tối đa 32 ký tự).",
+        "nameDuplicate": "Thẻ mang tên #{{name}} đã tồn tại.",
+        "delete": "Xóa thẻ",
+        "cancel": "Hủy",
+        "save": "Lưu",
+        "customColorAria": "Màu tùy chỉnh",
+        "pickColorAria": "Chọn màu {{color}}"
+      },
+      "filterBanner": {
+        "label": "Đang hiển thị ghi chú có thẻ",
+        "clear": "Xóa"
+      },
+      "filterBar": {
+        "placeholder": "Lọc theo thẻ…",
+        "overflow": "Đã chọn thêm {{count}} thẻ",
+        "manage": "Quản lý thẻ…",
+        "clear": "Xóa bộ lọc thẻ"
+      },
+      "emptyFiltered": {
+        "title": "Chưa có ghi chú nào được gắn thẻ #{{name}}",
+        "description": "Gắn thẻ cho một ghi chú để thấy tại đây, hoặc xóa bộ lọc."
+      },
+      "create": "Tạo \"{{name}}\"",
+      "toast": {
+        "deleted": "Đã xóa thẻ #{{name}}"
+      },
+      "errors": {
+        "createFailed": "Không thể tạo thẻ: {{message}}",
+        "updateFailed": "Không thể cập nhật thẻ: {{message}}",
+        "deleteFailed": "Không thể xóa thẻ: {{message}}",
+        "attachFailed": "Không thể gắn thẻ: {{message}}",
+        "detachFailed": "Không thể gỡ thẻ: {{message}}",
+        "favoriteFailed": "Không thể cập nhật yêu thích: {{message}}"
+      }
+    },
+    "folders": {
+      "title": "Thư mục",
+      "summary": "{{count}} thư mục · {{notes}}",
+      "noteCount_one": "{{count}} ghi chú",
+      "noteCount_other": "{{count}} ghi chú",
+      "searchPlaceholder": "Tìm kiếm thư mục...",
+      "empty": "Chưa có thư mục nào",
+      "actions": {
+        "create": "Thư mục mới"
+      },
+      "picker": {
+        "placeholder": "Lọc theo thư mục…",
+        "empty": "Không tìm thấy thư mục.",
+        "manage": "Quản lý thư mục…"
+      },
+      "manage": {
+        "title": "Quản lý thư mục"
+      },
+      "errors": {
+        "deleteFailed": "Không thể xóa thư mục: {{message}}",
+        "createFailed": "Không thể tạo thư mục: {{message}}"
       }
     },
     "vocabulary": {

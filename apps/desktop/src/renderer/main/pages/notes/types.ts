@@ -4,8 +4,8 @@ export type UpcomingEvent = {
   startAt: Date;
   endAt: Date;
   isAllDay: boolean;
-  meetingUrl: string;
-  calendarEventUrl?: string;
+  meetingUrl?: string | null;
+  calendarEventUrl?: string | null;
   calendarColor?: string;
 };
 
@@ -14,7 +14,9 @@ export interface Note {
   title: string;
   icon?: string | null;
   starred?: boolean;
+  folderId?: number | null;
   folder?: string | null;
+  audioFile?: string | null;
   updatedAt: Date;
   eventData?: {
     eventId: string;

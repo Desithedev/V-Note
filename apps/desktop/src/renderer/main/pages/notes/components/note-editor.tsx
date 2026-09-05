@@ -45,6 +45,111 @@ interface NoteEditorProps {
   onReady?: () => void;
 }
 
+interface NoteEditorInnerProps {
+  noteId: number;
+  syncProvider: NoteSyncProvider;
+  onReady?: () => void;
+}
+
+function NoteEditorInner({
+  noteId,
+  syncProvider,
+  onReady,
+}: NoteEditorInnerProps) {
+  const { t } = useTranslation();
+  const placeholder = t("settings.notes.note.bodyPlaceholder");
+
+  const extensions = useMemo(
+    () => [
+      ...buildRendererExtensions({
+        placeholder,
+        ydoc: syncProvider.getDoc(),
+      }),
+      SkillDiffEditorLock.configure({ noteId }),
+    ],
+    [placeholder, noteId, syncProvider],
+  );
+
+  const editor = useEditor(
+    {
+      extensions,
+      editorProps: {
+        attributes: {
+          class:
+            "min-h-[500px] w-full px-4 py-2 outline-none text-base leading-normal text-note-foreground selection:bg-indigo-500/20 cursor-text",
+          "aria-placeholder": placeholder,
+          spellcheck: "false",
+          autocorrect: "off",
+          autocapitalize: "off",
+        },
+        handleKeyDown(_view, event) {
+          const candidate = useSkillDiffStore
+            .getState()
+            .candidatesByNote.get(noteId);
+          if (!candidate || candidate.isAccepting) return false;
+          if (isContentMutatingKey(event)) {
+            useSkillDiffToastStore.getState().pulseAttention();
+          }
+          return false;
+        },
+        handlePaste() {
+          const candidate = useSkillDiffStore
+            .getState()
+            .candidatesByNote.get(noteId);
+          if (!candidate || candidate.isAccepting) return false;
+          useSkillDiffToastStore.getState().pulseAttention();
+          return false;
+        },
+      },
+      autofocus: "start",
+      content: undefined,
+    },
+    [noteId, syncProvider],
+  );
+
+  useRegisterNoteEditor(noteId, editor);
+
+  useEffect(() => {
+    if (editor) {
+      syncProvider.setEditor(editor);
+    }
+  }, [syncProvider, editor]);
+
+  useSkillDiffDecorations(editor, noteId);
+
+  const onReadyCalledRef = useRef(false);
+  useEffect(() => {
+    if (editor && !onReadyCalledRef.current) {
+      onReadyCalledRef.current = true;
+      onReady?.();
+    }
+  }, [editor, onReady]);
+
+  const handleContainerClick = () => {
+    if (editor && !editor.isFocused) {
+      editor.commands.focus("end");
+    }
+  };
+
+  return (
+    <div
+      className="relative cursor-text min-h-[500px]"
+      onClick={handleContainerClick}
+    >
+      <EditorContent editor={editor} />
+      {editor ? (
+        <DragHandle editor={editor} className="vnote-drag-handle">
+          <GripVertical className="size-3" />
+        </DragHandle>
+      ) : null}
+      {editor ? (
+        <InlineSkillPopoverPlugin editor={editor} noteId={noteId} />
+      ) : null}
+      {editor ? <FindInPagePlugin editor={editor} /> : null}
+    </div>
+  );
+}
+
 export function NoteEditor({
   noteId,
   onReady,
@@ -54,25 +159,15 @@ export function NoteEditor({
   const [syncProvider, setSyncProvider] = useState<NoteSyncProvider | null>(null);
   const providerRef = useRef<NoteSyncProvider | null>(null);
   const destroyQueueRef = useRef<Array<NoteSyncProvider>>([]);
-  const onReadyCalledRef = useRef(false);
   const onSaveErrorRef = useRef(() =>
     toast.error(t("settings.notes.toast.saveFailed")),
   );
-
-  // Reset onReady tracking when noteId changes.
-  useEffect(() => {
-    onReadyCalledRef.current = false;
-  }, [noteId]);
 
   useEffect(() => {
     onSaveErrorRef.current = () =>
       toast.error(t("settings.notes.toast.saveFailed"));
   }, [t]);
 
-  // After `syncProvider` changes (either unmounting or swapping to a new
-  // provider), it is safe to destroy the previous provider(s). This ensures
-  // any pending debounced writes are flushed while the persistence listener
-  // is still attached.
   useEffect(() => {
     if (destroyQueueRef.current.length === 0) return;
     const providersToDestroy = destroyQueueRef.current;
@@ -118,7 +213,6 @@ export function NoteEditor({
     };
   }, [noteId]);
 
-  // Final cleanup on unmount.
   useEffect(() => {
     return () => {
       if (providerRef.current) {
@@ -130,99 +224,6 @@ export function NoteEditor({
     };
   }, []);
 
-  const placeholder = t("settings.notes.note.bodyPlaceholder");
-
-  const extensions = useMemo(
-    () => [
-      ...buildRendererExtensions({
-        placeholder,
-        ydoc: syncProvider?.getDoc(),
-      }),
-      SkillDiffEditorLock.configure({ noteId }),
-    ],
-    [placeholder, noteId, syncProvider],
-  );
-
-  // Reset the TipTap editor when the noteId or syncProvider changes — a fresh
-  // instance bound to the new provider's Y.Doc avoids stale content flashing in.
-  const editor = useEditor(
-    {
-      extensions,
-      editorProps: {
-        attributes: {
-          class:
-            "min-h-[500px] px-4 py-2 outline-none text-base leading-normal text-note-foreground selection:bg-indigo-500/20",
-          "aria-placeholder": placeholder,
-          spellcheck: "false",
-          autocorrect: "off",
-          autocapitalize: "off",
-        },
-        // Pulse the dock bar when a user tries to edit under a staged
-        // candidate. The lock extension silently blocks the mutation;
-        // these handlers exist purely to detect user intent so the
-        // attention shake fires for typed/pasted input only and not for
-        // system-driven mutations (which the filterTransaction also
-        // catches). Read store state via getState() — these handlers fire
-        // on user input and must read the latest at event time.
-        handleKeyDown(_view, event) {
-          const candidate = useSkillDiffStore
-            .getState()
-            .candidatesByNote.get(noteId);
-          // No candidate → editor is live, nothing to nudge. Accept in
-          // flight → user has already committed, don't shake at them.
-          if (!candidate || candidate.isAccepting) return false;
-          if (isContentMutatingKey(event)) {
-            useSkillDiffToastStore.getState().pulseAttention();
-          }
-          return false;
-        },
-        handlePaste() {
-          const candidate = useSkillDiffStore
-            .getState()
-            .candidatesByNote.get(noteId);
-          if (!candidate || candidate.isAccepting) return false;
-          useSkillDiffToastStore.getState().pulseAttention();
-          return false;
-        },
-      },
-      // Only autofocus on initial mount — re-creating the editor when the
-      // user switches notes shouldn't steal focus from wherever they
-      // navigated to. The "start" placement matches the original Lexical
-      // AutoFocusPlugin behavior.
-      autofocus: "start",
-      // Initial content is empty — Collaboration syncs the editor view with
-      // the provider's Y.Doc (already seeded by syncProvider.loadFromLocal).
-      content: undefined,
-    },
-    [noteId, syncProvider],
-  );
-
-  // Publish the editor instance to the layout so the bottom cluster can morph
-  // its dock pill into the skill-diff accept bar without owning the editor.
-  useRegisterNoteEditor(noteId, editor);
-
-  // Hand the editor back to the provider so the markdown sidecar
-  // debouncer can serialize editor.getJSON() when it fires.
-  useEffect(() => {
-    if (syncProvider && editor) {
-      syncProvider.setEditor(editor);
-    }
-  }, [syncProvider, editor]);
-
-  // Decorate / clear in-document diff when a candidate is staged for this
-  // note. The cluster renders the action UI separately; the SkillDiffEditorLock
-  // extension above blocks mutations + pulses attention.
-  useSkillDiffDecorations(editor, noteId);
-
-  // Notify parent when editor is ready (after the provider is hooked up and
-  // the editor exists).
-  useEffect(() => {
-    if (!isLoading && syncProvider && editor && !onReadyCalledRef.current) {
-      onReadyCalledRef.current = true;
-      onReady?.();
-    }
-  }, [isLoading, syncProvider, editor, onReady]);
-
   if (isLoading || !syncProvider) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -232,17 +233,11 @@ export function NoteEditor({
   }
 
   return (
-    <div className="relative">
-      <EditorContent editor={editor} />
-      {editor ? (
-        <DragHandle editor={editor} className="vnote-drag-handle">
-          <GripVertical className="size-3" />
-        </DragHandle>
-      ) : null}
-      {editor ? (
-        <InlineSkillPopoverPlugin editor={editor} noteId={noteId} />
-      ) : null}
-      {editor ? <FindInPagePlugin editor={editor} /> : null}
-    </div>
+    <NoteEditorInner
+      key={noteId}
+      noteId={noteId}
+      syncProvider={syncProvider}
+      onReady={onReady}
+    />
   );
 }

@@ -432,3 +432,28 @@ ul[data-type="taskList"] li[data-checked="true"] > div {
   text-decoration: line-through;
   color: var(--muted-foreground);
 }
+
+/* Global input & text editing controls: ensure native text cursor, user selection, and non-draggable regions */
+input,
+textarea,
+[contenteditable="true"],
+.tiptap,
+.ProseMirror {
+  -webkit-app-region: no-drag !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  cursor: text !important;
+}
+
+button,
+a,
+select,
+[role="button"],
+[role="menuitem"],
+[role="tab"],
+[role="checkbox"],
+[role="switch"],
+[role="combobox"] {
+  -webkit-app-region: no-drag !important;
+}
+

@@ -77,7 +77,7 @@ if (isDev) {
 
   // Override console transport with custom colored output
   log.transports.console.format = "{text}"; // Minimal formatting - just pass through the text
-  log.transports.console.writeFn = (info) => {
+  log.transports.console.writeFn = (info: any) => {
     const { message } = info;
     const scope = message.scope || "default";
     const level = message.level;
@@ -142,7 +142,7 @@ export function isScopeDebug(scope: string): boolean {
 
 // Set up hooks to handle scope-based debug filtering
 if (debugScopePatterns.length > 0) {
-  log.hooks.push((message) => {
+  log.hooks.push((message: any) => {
     // Only filter debug messages
     if (message.level !== "debug") return message;
 
@@ -178,6 +178,7 @@ export const logger = {
   updater: createLoggerForScope("updater"),
   transcription: createLoggerForScope("transcription"),
   mainWindow: createLoggerForScope("mainWindow"),
+  ai: createLoggerForScope("ai"),
 };
 
 // Log startup information

@@ -1,5 +1,5 @@
 {
-  "name": "@prismical/types",
+  "name": "@v-note/types",
   "version": "1.0.0",
   "description": "Shared type definitions and schema generation for V-Note",
   "type": "module",
@@ -24,8 +24,8 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@prismical/typescript-config": "workspace:*",
-    "@prismical/eslint-config": "workspace:*",
+    "@v-note/typescript-config": "workspace:*",
+    "@v-note/eslint-config": "workspace:*",
     "eslint": "^9.26.0",
     "quicktype": "23.1.4",
     "tsx": "^4.19.4",

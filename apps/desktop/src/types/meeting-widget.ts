@@ -1,6 +1,8 @@
 import type { AudioSource, MeetingRuntimeState } from "./meeting";
 import type { MeetingStartNotificationPayload } from "./meeting-start-notifications";
 
+export type { AudioSource };
+
 export type MeetingWidgetVisibility = "never" | "while-recording" | "always";
 export type MeetingWidgetEdge = "right" | "bottom";
 export type MeetingTranscriptMode = "full" | "caption";

@@ -294,7 +294,7 @@ export const notesRouter = createRouter({
       const { getSettingsSection } = await import("@/db/app-settings");
       const modelDefaults = await getSettingsSection("modelDefaults");
       const modelSelection =
-        modelDefaults?.formatting || modelDefaults?.summarization;
+        modelDefaults?.formatting || (modelDefaults as any)?.summarization;
 
       const systemPrompt =
         `Bạn là trợ lý AI phân tích thông minh trong ứng dụng V-Note. Nhiệm vụ của bạn là giải đáp mọi câu hỏi của người dùng dựa trên nội dung ghi chú và bản phiên âm cuộc trò chuyện/cuộc họp dưới đây.\n\n` +

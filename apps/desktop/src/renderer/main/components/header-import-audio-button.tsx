@@ -22,12 +22,11 @@ export function HeaderImportAudioButton() {
         return;
       }
 
-      toast.success(`✅ Đã trích xuất thành công: ${data.filename} (${data.duration}s)`, {
+      toast.success(`✅ Đã trích xuất thành công: ${data.title || "ghi chú mới"} (${data.duration}s)`, {
         id: "import-audio-toast",
       });
 
-      utils.notes.getAllNotes.invalidate();
-      utils.notes.getRecentNotes.invalidate();
+      utils.notes.getNotes.invalidate();
       utils.notes.getNoteById.invalidate();
       utils.transcriptions.getTranscriptions.invalidate();
 

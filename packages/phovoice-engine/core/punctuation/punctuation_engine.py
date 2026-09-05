@@ -21,7 +21,7 @@ class PunctuationEngine:
 
     def __init__(self,
                  model_name: str = "dragonSwing/vibert-capu",
-                 confidence: float = 0.30,
+                 confidence: float = 0.45,
                  prefer_int8: bool = True,
                  execution_provider: str = "cpu"):
         self.model_name = model_name

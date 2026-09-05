@@ -56,7 +56,7 @@ export function SortMenu() {
       }}
     >
       <SelectTrigger
-        aria-label={t("settings.notes.sort.aria")}
+        aria-label={t("settings.notes.sort.aria", "Sắp xếp ghi chú")}
         className="h-9 w-36 shrink-0 gap-2 rounded-lg border-transparent bg-accent/40 px-3 text-sm text-muted-foreground shadow-none transition-colors hover:bg-accent/60 focus-visible:ring-0 dark:bg-accent/30 dark:hover:bg-accent/50"
       >
         <SelectValue />
@@ -64,9 +64,15 @@ export function SortMenu() {
       <SelectContent>
         {COMBOS.map((c) => {
           const Arrow = c.order === "asc" ? ArrowUp : ArrowDown;
+          const fallbackLabel =
+            c.sort === "updatedAt"
+              ? "Cập nhật"
+              : c.sort === "createdAt"
+                ? "Ngày tạo"
+                : "Tiêu đề";
           return (
             <SelectItem key={encode(c)} value={encode(c)}>
-              <span>{t(`settings.notes.sort.${c.sort}`)}</span>
+              <span>{t(`settings.notes.sort.${c.sort}`, fallbackLabel)}</span>
               <Arrow className="h-3 w-3 text-muted-foreground" />
             </SelectItem>
           );

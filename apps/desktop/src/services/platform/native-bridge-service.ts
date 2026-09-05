@@ -45,7 +45,7 @@ import {
   RecheckPressedKeysResult,
   RecheckPressedKeysResultSchema,
   AppContext,
-} from "@prismical/types";
+} from "@v-note/types";
 
 // Define the interface for RPC methods
 interface RPCMethods {

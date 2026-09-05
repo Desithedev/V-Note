@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, Eye, EyeOff } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -87,13 +87,29 @@ export default function InstanceFormDialog({
   // checkbox fields. Stored under one keyed map so resetting on
   // open/edit stays simple.
   const [values, setValues] = useState<Record<string, string | boolean>>({});
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const initialInputRef = useState<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        const firstInput = document.querySelector<HTMLInputElement>(
+          '[data-slot="dialog-content"] input:not([type="hidden"]):not([disabled])',
+        );
+        firstInput?.focus();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   // Reset form on open / mode change.
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setShowPasswords({});
     if (mode?.kind === "create") {
       setLabel("");
       if (mode.provider === PROVIDER_TYPES.phovoice) {
@@ -253,7 +269,15 @@ export default function InstanceFormDialog({
 
           {fields
             .filter((f) => !f.advanced)
-            .map((f) => renderField(f, values, setValues))}
+            .map((f) =>
+              renderField(
+                f,
+                values,
+                setValues,
+                showPasswords,
+                setShowPasswords,
+              ),
+            )}
 
           {fields.some((f) => f.advanced) && (
             <Collapsible className="space-y-2">
@@ -264,7 +288,15 @@ export default function InstanceFormDialog({
               <CollapsibleContent className="space-y-4 pt-2">
                 {fields
                   .filter((f) => f.advanced)
-                  .map((f) => renderField(f, values, setValues))}
+                  .map((f) =>
+                    renderField(
+                      f,
+                      values,
+                      setValues,
+                      showPasswords,
+                      setShowPasswords,
+                    ),
+                  )}
               </CollapsibleContent>
             </Collapsible>
           )}
@@ -308,6 +340,10 @@ function renderField(
   setValues: React.Dispatch<
     React.SetStateAction<Record<string, string | boolean>>
   >,
+  showPasswords: Record<string, boolean>,
+  setShowPasswords: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >,
 ) {
   if (f.inputType === "checkbox") {
     const checked = values[f.field] === true;
@@ -323,7 +359,7 @@ function renderField(
           />
           <Label
             htmlFor={`instance-${f.field}`}
-            className="text-sm font-normal leading-snug"
+            className="text-sm font-normal leading-snug cursor-pointer select-none"
           >
             {FIELD_LABELS[f.field]}
           </Label>
@@ -339,21 +375,53 @@ function renderField(
 
   const stringValue =
     typeof values[f.field] === "string" ? (values[f.field] as string) : "";
+  const isPassword = f.inputType === "password";
+  const isRevealed = !!showPasswords[f.field];
+  const actualType = isPassword ? (isRevealed ? "text" : "password") : f.inputType;
+
   return (
     <div key={f.field} className="space-y-2">
-      <Label htmlFor={`instance-${f.field}`}>
+      <Label
+        htmlFor={`instance-${f.field}`}
+        className="cursor-pointer select-none"
+      >
         {FIELD_LABELS[f.field]}
         {f.required && <span className="text-destructive"> *</span>}
       </Label>
-      <Input
-        id={`instance-${f.field}`}
-        type={f.inputType}
-        placeholder={FIELD_PLACEHOLDERS[f.field]}
-        value={stringValue}
-        onChange={(e) =>
-          setValues((prev) => ({ ...prev, [f.field]: e.target.value }))
-        }
-      />
+      <div className="relative">
+        <Input
+          id={`instance-${f.field}`}
+          type={actualType}
+          placeholder={FIELD_PLACEHOLDERS[f.field]}
+          value={stringValue}
+          className={isPassword ? "pr-10" : undefined}
+          onChange={(e) =>
+            setValues((prev) => ({ ...prev, [f.field]: e.target.value }))
+          }
+        />
+        {isPassword && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-transparent"
+            onClick={() =>
+              setShowPasswords((prev) => ({
+                ...prev,
+                [f.field]: !prev[f.field],
+              }))
+            }
+            tabIndex={-1}
+            aria-label={isRevealed ? "Hide password" : "Show password"}
+          >
+            {isRevealed ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

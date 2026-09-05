@@ -1,5 +1,5 @@
 {
-  "name": "@prismical/audio-capture",
+  "name": "@v-note/audio-capture",
   "version": "1.0.0",
   "description": "Dedicated native audio capture binary for Prismical meetings",
   "private": true,

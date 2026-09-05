@@ -68,7 +68,7 @@ vi.mock("onnxruntime-node", () => ({
   },
 }));
 
-vi.mock("@prismical/whisper-wrapper", () => ({
+vi.mock("@v-note/whisper-wrapper", () => ({
   WhisperModel: vi.fn().mockImplementation(function () {
     return {
       transcribe: vi.fn(function () {

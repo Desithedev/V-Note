@@ -116,6 +116,12 @@ const api: ElectronAPI = {
   // synchronously in direct response to a user gesture (click/keypress).
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
 
+  clipboard: {
+    writeText: (text: string) =>
+      ipcRenderer.invoke("clipboard:write-text", text),
+    readText: () => ipcRenderer.invoke("clipboard:read-text"),
+  },
+
   findInPage: {
     start: (query: string, opts?: { forward?: boolean; findNext?: boolean }) =>
       ipcRenderer.invoke("find-in-page:start", {

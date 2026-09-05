@@ -1,5 +1,5 @@
 {
-  "name": "@prismical/whisper-wrapper",
+  "name": "@v-note/whisper-wrapper",
   "version": "0.0.0",
   "private": true,
   "main": "dist/index.js",
@@ -31,7 +31,7 @@
     "node-api-headers": "^1.5.0"
   },
   "devDependencies": {
-    "@prismical/typescript-config": "workspace:*",
+    "@v-note/typescript-config": "workspace:*",
     "typescript": "^5.8.3"
   }
 }

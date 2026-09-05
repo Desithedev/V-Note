@@ -3,7 +3,7 @@
  */
 
 import { PipelineContext } from "./context";
-import { GetAccessibilityContextResult } from "@prismical/types";
+import { GetAccessibilityContextResult } from "@v-note/types";
 export { PipelineContext, SharedPipelineData } from "./context";
 
 // Context for transcription operations (shared between transcribe and flush)

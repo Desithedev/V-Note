@@ -52,7 +52,7 @@ export default defineConfig({
         "stream",
         "url",
         "util",
-        "@prismical/whisper-wrapper",
+        "@v-note/whisper-wrapper",
         "@libsql/client",
         "@libsql/darwin-arm64",
         "@libsql/darwin-x64",
@@ -82,7 +82,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: [
       "better-sqlite3",
-      "@prismical/whisper-wrapper",
+      "@v-note/whisper-wrapper",
       "drizzle-orm",
       "@libsql/client",
     ],

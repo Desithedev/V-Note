@@ -28,6 +28,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 import { api } from "@/trpc/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -871,6 +872,11 @@ export function NoteAssetsPanel({
           }
           return [...prev, event];
         });
+        const speakerKey = event.speaker === "you" ? "you" : "them";
+        setLivePartial((prev) => ({
+          ...prev,
+          [speakerKey]: "",
+        }));
       }
     },
     onError: () => {},
@@ -882,11 +888,11 @@ export function NoteAssetsPanel({
   const handleCopyTranscript = async () => {
     if (!hasTranscript) return;
     const text = formatTranscriptAsText(transcript);
-    await navigator.clipboard.writeText(text);
+    await copyToClipboard(text);
     toast.success("Đã sao chép toàn bộ bản phiên âm vào Clipboard");
   };
 
-  const handleAddToNote = () => {
+  const handleAddToNote = async () => {
     if (!hasTranscript) return;
     const formattedText = formatTranscriptAsText(transcript);
 
@@ -900,7 +906,7 @@ export function NoteAssetsPanel({
         .run();
       toast.success("Đã thêm toàn bộ bản phiên âm vào ghi chú");
     } else {
-      navigator.clipboard.writeText(formattedText);
+      await copyToClipboard(formattedText);
       toast.success("Đã sao chép nội dung phiên âm vào Clipboard");
     }
   };
@@ -1289,9 +1295,12 @@ export function NoteAssetsPanel({
                       for (const partial of activePartials) {
                         const last = liveBlocks[liveBlocks.length - 1];
                         if (last && last.speaker === partial.speaker) {
-                          last.text = `${last.text} ${partial.text}`.trim();
-                          last.isLive = true;
-                          last.endTimeMs = Math.max(last.endTimeMs, safeDuration * 1000);
+                          const delta = getUncommittedPartial(last.text, partial.text);
+                          if (delta) {
+                            last.text = `${last.text} ${delta}`.trim();
+                            last.isLive = true;
+                            last.endTimeMs = Math.max(last.endTimeMs, safeDuration * 1000);
+                          }
                         } else {
                           liveBlocks.push({
                             id: `partial-${partial.speaker}`,

@@ -1,5 +1,5 @@
 {
-  "name": "@prismical/webrtc-aec3-builder",
+  "name": "@v-note/webrtc-aec3-builder",
   "version": "0.0.0",
   "private": true,
   "scripts": {

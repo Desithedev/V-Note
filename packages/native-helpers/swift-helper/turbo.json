@@ -3,7 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["@prismical/types#generate:all"],
+      "dependsOn": ["@v-note/types#generate:all"],
       "inputs": [
         "Sources/**",
         "Package.swift",

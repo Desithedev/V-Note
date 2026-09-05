@@ -138,7 +138,7 @@ export function FolderPicker() {
         filter={null}
       >
         <ComboboxInput
-          placeholder={t("settings.folders.picker.placeholder")}
+          placeholder={t("settings.folders.picker.placeholder", "Lọc theo thư mục…")}
           showClear
           leading={
             selectedFolder ? (

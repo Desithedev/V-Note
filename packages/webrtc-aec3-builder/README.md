@@ -1,4 +1,4 @@
-# @prismical/webrtc-aec3-builder
+# @v-note/webrtc-aec3-builder
 
 This workspace package owns the source-build flow for Prismical's WebRTC AEC3
 vendor bundle.
@@ -19,18 +19,18 @@ workspace root.
 
 ## Commands
 
-- `pnpm --filter @prismical/webrtc-aec3-builder doctor:env`
-- `pnpm --filter @prismical/webrtc-aec3-builder fetch`
-- `pnpm --filter @prismical/webrtc-aec3-builder gen:arm64`
-- `pnpm --filter @prismical/webrtc-aec3-builder gen:x64`
-- `pnpm --filter @prismical/webrtc-aec3-builder gen:win-x64`
-- `pnpm --filter @prismical/webrtc-aec3-builder build:arm64`
-- `pnpm --filter @prismical/webrtc-aec3-builder build:x64`
-- `pnpm --filter @prismical/webrtc-aec3-builder build:win-x64`
-- `pnpm --filter @prismical/webrtc-aec3-builder bundle`
-- `pnpm --filter @prismical/webrtc-aec3-builder bundle:win-x64`
-- `pnpm --filter @prismical/webrtc-aec3-builder build:bundle`
-- `pnpm --filter @prismical/webrtc-aec3-builder build:windows`
+- `pnpm --filter @v-note/webrtc-aec3-builder doctor:env`
+- `pnpm --filter @v-note/webrtc-aec3-builder fetch`
+- `pnpm --filter @v-note/webrtc-aec3-builder gen:arm64`
+- `pnpm --filter @v-note/webrtc-aec3-builder gen:x64`
+- `pnpm --filter @v-note/webrtc-aec3-builder gen:win-x64`
+- `pnpm --filter @v-note/webrtc-aec3-builder build:arm64`
+- `pnpm --filter @v-note/webrtc-aec3-builder build:x64`
+- `pnpm --filter @v-note/webrtc-aec3-builder build:win-x64`
+- `pnpm --filter @v-note/webrtc-aec3-builder bundle`
+- `pnpm --filter @v-note/webrtc-aec3-builder bundle:win-x64`
+- `pnpm --filter @v-note/webrtc-aec3-builder build:bundle`
+- `pnpm --filter @v-note/webrtc-aec3-builder build:windows`
 
 `build:bundle` is the end-to-end path once your machine has the required build
 toolchain for macOS. `build:windows` is the end-to-end path for the Windows

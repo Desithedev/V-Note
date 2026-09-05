@@ -5,7 +5,7 @@ import {
   type ShortcutsConfig,
 } from "@/services/settings-service";
 import { NativeBridge } from "@/services/platform/native-bridge-service";
-import { KeyEventPayload, HelperEvent } from "@prismical/types";
+import { KeyEventPayload, HelperEvent } from "@v-note/types";
 import { logger } from "@/main/logger";
 import { getKeyFromKeycode } from "@/utils/keycode-map";
 import {

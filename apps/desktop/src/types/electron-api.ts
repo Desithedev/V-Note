@@ -41,6 +41,12 @@ export interface ElectronAPI {
   // External link handling
   openExternal: (url: string) => Promise<void>;
 
+  // Native clipboard bridge
+  clipboard: {
+    writeText: (text: string) => Promise<boolean>;
+    readText: () => Promise<string>;
+  };
+
   findInPage: {
     start: (
       query: string,

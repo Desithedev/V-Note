@@ -100,7 +100,7 @@ export class MeetingSourceTranscriptionRuntime {
           },
         });
 
-        return this.consumeProviderOutput(providerText, false);
+        return this.consumeProviderOutput(providerText, true);
       } catch {
         return [];
       }

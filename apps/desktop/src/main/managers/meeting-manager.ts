@@ -9,6 +9,7 @@ import {
   createMeeting,
   createMeetingArtifacts,
   createTranscriptSegments,
+  finalizeAllMeetingSegments,
   replaceNonFinalTranscriptSegments,
   updateMeeting,
 } from "@/db/meetings";
@@ -396,6 +397,7 @@ export class MeetingManager extends EventEmitter {
       await this.finalizeArtifacts();
       await Promise.all(Object.values(this.transcriptionChains));
       await this.flushTranscriptionRuntimes();
+      await finalizeAllMeetingSegments(meetingId);
       await this.traceWriter?.recordEvent("meeting_stop_completed", {
         meetingId,
         transcriptSegmentCount: this.lastTranscript.length,
@@ -835,46 +837,7 @@ export class MeetingManager extends EventEmitter {
         this.activeMeetingId &&
         this.activeNoteId !== null
       ) {
-        const storedSegments = await replaceNonFinalTranscriptSegments(
-          this.activeMeetingId,
-          chunks.map((chunk) => ({
-            id: uuid(),
-            meetingId: this.activeMeetingId!,
-            source: chunk.source,
-            speaker: chunk.speaker,
-            speakerId: chunk.speakerId,
-            speakerLabel: chunk.speakerLabel,
-            text: chunk.text,
-            translation: chunk.translation,
-            confidence: chunk.confidence,
-            startTimeMs: chunk.startTimeMs,
-            endTimeMs: chunk.endTimeMs,
-            segmentOrder: this.nextSegmentOrder++,
-            isFinal: true,
-          })),
-        );
-
-        for (const segment of storedSegments) {
-          const event: TranscriptEvent = {
-            id: segment.id,
-            meetingId: segment.meetingId,
-            noteId: this.activeNoteId,
-            source: segment.source as TranscriptEvent["source"],
-            speaker: segment.speaker as TranscriptEvent["speaker"],
-            speakerId: segment.speakerId ?? undefined,
-            speakerLabel: segment.speakerLabel ?? undefined,
-            text: segment.text,
-            translation: segment.translation ?? undefined,
-            confidence: segment.confidence ?? undefined,
-            startTimeMs: segment.startTimeMs,
-            endTimeMs: segment.endTimeMs,
-            segmentOrder: segment.segmentOrder,
-            isFinal: true,
-            createdAt: segment.createdAt,
-          };
-
-          this.emit("transcript-event", event);
-        }
+        await this.persistTranscriptionChunks(chunks);
       }
 
       this.emitPartialTranscript(source, "");

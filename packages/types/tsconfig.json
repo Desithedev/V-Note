@@ -1,5 +1,5 @@
 {
-  "extends": "@prismical/typescript-config/base.json",
+  "extends": "@v-note/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",

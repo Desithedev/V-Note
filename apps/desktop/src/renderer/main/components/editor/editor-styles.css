@@ -200,3 +200,12 @@
   spellcheck: false !important;
   -webkit-spellcheck: false !important;
 }
+
+/* Ensure editor and editable elements always show text cursor and allow easy focus */
+.tiptap,
+.ProseMirror {
+  cursor: text !important;
+  min-height: 500px;
+  outline: none;
+}
+

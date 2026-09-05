@@ -1,4 +1,4 @@
-# @prismical/whisper-wrapper
+# @v-note/whisper-wrapper
 
 This package wraps the `whisper.cpp` Node addon so the desktop app can call into
 Whisper from a forked worker process. The build and runtime layers are tuned for
@@ -7,15 +7,15 @@ reasoning behind them.
 
 ## Build workflow
 
-- `pnpm --filter @prismical/whisper-wrapper build` prepares the `whisper.cpp`
+- `pnpm --filter @v-note/whisper-wrapper build` prepares the `whisper.cpp`
   submodule, builds the TypeScript entrypoint, then builds the native addon.
 - `pnpm install` may also run `bin/build-addon.js` via postinstall when package
   lifecycle scripts are enabled, but development does not rely on that path.
 - The native build drops the resulting `whisper.node` into
   `native/<platform-arch(-tag)>/`.
-- `pnpm --filter @prismical/whisper-wrapper build:native` rebuilds the default
+- `pnpm --filter @v-note/whisper-wrapper build:native` rebuilds the default
   variants for this platform (Metal + CPU on macOS, CPU elsewhere).
-- `pnpm --filter @prismical/whisper-wrapper build:native:cuda` builds an extra
+- `pnpm --filter @v-note/whisper-wrapper build:native:cuda` builds an extra
   `win32-x64-cuda` binary alongside the regular `win32-x64` fallback. Install
   the CUDA toolkit (12.x tested) before running it.
 - Every macOS build is ad-hoc signed (`codesign -s -`) so Electron/Node can load
@@ -52,7 +52,7 @@ GitHub’s hosted macOS runners expose `i8mm` but clang refuses to emit the
 those instructions:
 
 ```bash
-GGML_NATIVE=ON pnpm --filter @prismical/whisper-wrapper build:native
+GGML_NATIVE=ON pnpm --filter @v-note/whisper-wrapper build:native
 ```
 
 Leave it off in CI unless you control the runner.
@@ -64,8 +64,8 @@ comma-separated list of directory names that should map to `native/<name>`.
 Examples:
 
 ```bash
-WHISPER_TARGETS="linux-x64-gnu" pnpm --filter @prismical/whisper-wrapper build:native
-WHISPER_TARGETS="win32-x64-cuda,win32-x64" pnpm --filter @prismical/whisper-wrapper build:native
+WHISPER_TARGETS="linux-x64-gnu" pnpm --filter @v-note/whisper-wrapper build:native
+WHISPER_TARGETS="win32-x64-cuda,win32-x64" pnpm --filter @v-note/whisper-wrapper build:native
 ```
 
 Absent overrides the script builds the Metal variant (on macOS) followed by the
@@ -86,7 +86,7 @@ file directly, matching the CLI smoke tests.
 ## Patches
 
 Local patches in `patches/` are applied to the whisper.cpp submodule automatically
-during `pnpm --filter @prismical/whisper-wrapper dev:prepare` and during
+during `pnpm --filter @v-note/whisper-wrapper dev:prepare` and during
 `pnpm install` when package lifecycle scripts are enabled. The apply script is
 idempotent — already-applied patches are skipped.
 

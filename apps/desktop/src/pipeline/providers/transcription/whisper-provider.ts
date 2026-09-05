@@ -32,6 +32,7 @@ interface WorkerTranscriptionResult {
 }
 
 export class WhisperProvider implements TranscriptionProvider {
+  readonly id = "whisper-local";
   readonly name = "whisper-local";
 
   private modelService: ModelService;

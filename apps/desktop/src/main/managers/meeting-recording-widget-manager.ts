@@ -375,10 +375,12 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
 
     if (nextVisible) {
       this.clearHideTimer();
-      void this.deps.windowManager.createOrShowMeetingWidgetWindow(
-        this.settings.edge,
-        this.settings.normalizedPosition,
-      );
+      if (!this.isWidgetWindowVisible()) {
+        void this.deps.windowManager.createOrShowMeetingWidgetWindow(
+          this.settings.edge,
+          this.settings.normalizedPosition,
+        );
+      }
       this.deps.windowManager.setMeetingWidgetWindowIgnoreMouseEvents(true);
     } else if (this.isWidgetWindowVisible()) {
       this.deps.windowManager.setMeetingWidgetWindowIgnoreMouseEvents(true);
@@ -395,7 +397,7 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       showTranscript: this.settings.showTranscript,
       transcriptMode: this.settings.transcriptMode,
       transcriptFontSize: this.settings.transcriptFontSize,
-      mutedSources: runtime.mutedSources,
+      mutedSources: runtimeMutedSources(runtime),
     });
 
     logger.debug("Meeting recording widget state refreshed", {
@@ -420,13 +422,7 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       return true;
     }
 
-    // While recording, always show the floating widget and transcript popup on top of desktop
-    const isRecording =
-      runtime.state === "starting" ||
-      runtime.state === "recording" ||
-      runtime.state === "stopping" ||
-      runtime.state === "error";
-
+    const isRecording = isActiveMeetingState(runtime.state);
     if (isRecording) {
       return true;
     }
@@ -449,8 +445,8 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
   private scheduleHide(): void {
     this.clearHideTimer();
     this.hideTimer = setTimeout(() => {
-      this.deps.windowManager.hideMeetingWidgetWindow();
       this.hideTimer = null;
+      this.deps.windowManager.hideMeetingWidgetWindow();
     }, WIDGET_HIDE_ANIMATION_MS);
   }
 
@@ -471,8 +467,8 @@ export class MeetingRecordingWidgetManager extends EventEmitter {
       nextState.showTranscript === this.state.showTranscript &&
       nextState.transcriptMode === this.state.transcriptMode &&
       nextState.transcriptFontSize === this.state.transcriptFontSize &&
-      nextState.mutedSources.mic === this.state.mutedSources.mic &&
-      nextState.mutedSources.system === this.state.mutedSources.system &&
+      nextState.mutedSources?.mic === this.state.mutedSources?.mic &&
+      nextState.mutedSources?.system === this.state.mutedSources?.system &&
       sameDetectionId(nextState.meetingDetection, this.state.meetingDetection)
     ) {
       return false;

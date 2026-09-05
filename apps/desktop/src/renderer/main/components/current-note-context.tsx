@@ -23,7 +23,7 @@ export type CurrentNoteContextValue = {
   // the cluster makes that decision from the global meeting snapshot.
   meetingState: MeetingRuntimeState;
 
-  onStartMeeting: (mode?: "dual" | "mic") => void;
+  onStartMeeting: (mode?: "dual" | "mic" | "system") => void;
   onStopMeeting: () => void;
 };
 

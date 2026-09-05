@@ -57,7 +57,7 @@ export const EXTERNAL_DEPENDENCIES = [
   "@libsql/win32-x64-msvc",
   "libsql",
   "onnxruntime-node",
-  "@prismical/whisper-wrapper",
+  "@v-note/whisper-wrapper",
   // Add any other native modules you need here
 ];
 
@@ -180,7 +180,7 @@ const config: ForgeConfig = {
       // Prune heavy native sources that trigger MAX_PATH on Windows packages
       const whisperWrapperPath = join(
         localNodeModules,
-        "@prismical",
+        "@v-note",
         "whisper-wrapper",
       );
       const whisperPruneTargets = [
@@ -419,7 +419,7 @@ const config: ForgeConfig = {
     // previous runtime cannot prevent Forge from producing the installer.
     asar: {
       unpack:
-        "{*.node,*.dylib,*.so,*.dll,*.metal,**/node_modules/@prismical/whisper-wrapper/**,**/whisper.cpp/**,**/.vite/build/whisper-worker-fork.js,**/node_modules/jest-worker/**,**/onnxruntime-node/bin/**}",
+        "{*.node,*.dylib,*.so,*.dll,*.metal,**/node_modules/@v-note/whisper-wrapper/**,**/whisper.cpp/**,**/.vite/build/whisper-worker-fork.js,**/node_modules/jest-worker/**,**/onnxruntime-node/bin/**}",
     },
     name: "V-Note",
     executableName: "V-Note",

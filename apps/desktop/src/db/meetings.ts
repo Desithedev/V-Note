@@ -123,6 +123,16 @@ export async function replaceNonFinalTranscriptSegments(
   return createTranscriptSegments(segments);
 }
 
+export async function finalizeAllMeetingSegments(
+  meetingId: string,
+): Promise<void> {
+  await db
+    .update(transcriptSegments)
+    .set({ isFinal: true })
+    .where(eq(transcriptSegments.meetingId, meetingId));
+}
+
+
 export async function updateTranscriptSegment(
   id: string,
   text: string,
@@ -327,8 +337,7 @@ export async function getNoteTranscript(
       continue;
     }
 
-    const hasFinal = rawSegments.some((s) => s.isFinal);
-    const sessionSegments = hasFinal ? rawSegments.filter((s) => s.isFinal) : rawSegments;
+    const sessionSegments = rawSegments;
 
     for (const segment of sessionSegments) {
       events.push(

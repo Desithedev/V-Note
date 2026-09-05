@@ -80,12 +80,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build whisper wrapper JS
-        run: pnpm --filter @prismical/whisper-wrapper build
+        run: pnpm --filter @v-note/whisper-wrapper build
 
       - name: Build whisper native binaries
         env:
           GGML_NATIVE: OFF
-        run: pnpm --filter @prismical/whisper-wrapper build:native
+        run: pnpm --filter @v-note/whisper-wrapper build:native
 
       - name: Download Node.js binaries
         working-directory: apps/desktop
@@ -125,3 +125,9 @@ jobs:
           API_ENDPOINT: ""
           AUTH_REDIRECT_URI: ""
         run: pnpm package
+
+      - name: Upload packaged app
+        uses: actions/upload-artifact@v4
+        with:
+          name: v-note-${{ matrix.os }}
+          path: apps/desktop/out/

@@ -1,13 +1,13 @@
 {
-  "name": "@prismical/swift-helper",
+  "name": "@v-note/swift-helper",
   "version": "1.0.0",
   "description": "Swift native helper for accessibility APIs and system integration",
   "private": true,
   "scripts": {
-    "build": "node -e \"if (process.platform !== 'darwin') process.exit(0); else require('child_process').execSync('pnpm --filter @prismical/types generate:all && turbo run build:native', {stdio: 'inherit'});\"",
+    "build": "node -e \"if (process.platform !== 'darwin') process.exit(0); else require('child_process').execSync('pnpm --filter @v-note/types generate:all && turbo run build:native', {stdio: 'inherit'});\"",
     "build:native": "node -e \"if (process.platform !== 'darwin') process.exit(0); else require('child_process').execSync('mkdir -p .build && swift build --configuration release && mkdir -p bin && cp .build/release/SwiftHelper bin/SwiftHelper', {stdio: 'inherit'});\"",
     "clean": "node -e \"if (process.platform !== 'darwin') process.exit(0); else require('child_process').execSync('rm -rf .build bin .turbo', {stdio: 'inherit'});\"",
-    "dev": "node -e \"if (process.platform !== 'darwin') process.exit(0); else require('child_process').execSync('pnpm --filter @prismical/types generate:all && swift build --configuration debug && mkdir -p bin && cp .build/debug/SwiftHelper bin/SwiftHelper', {stdio: 'inherit'});\""
+    "dev": "node -e \"if (process.platform !== 'darwin') process.exit(0); else require('child_process').execSync('pnpm --filter @v-note/types generate:all && swift build --configuration debug && mkdir -p bin && cp .build/debug/SwiftHelper bin/SwiftHelper', {stdio: 'inherit'});\""
   },
   "files": [
     "bin/*"

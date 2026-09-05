@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, nativeTheme, shell } from "electron";
+import { BrowserWindow, screen, nativeTheme, shell, Menu, MenuItem } from "electron";
 import path from "node:path";
 import { logger } from "../logger";
 import { getAppIconPath } from "./icon";
@@ -202,6 +202,7 @@ export class WindowManager {
    */
   async createOrShowMainWindow(initialRoute?: string): Promise<void> {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.setEnabled(true);
       this.mainWindow.show();
       this.mainWindow.focus();
       return;
@@ -246,6 +247,12 @@ export class WindowManager {
         contextIsolation: true,
         spellcheck: false,
       },
+    });
+
+    this.mainWindow.setEnabled(true);
+    this.mainWindow.once("ready-to-show", () => {
+      this.mainWindow?.show();
+      this.mainWindow?.focus();
     });
 
     const shouldOpenExternally = (url: string) => {
@@ -300,6 +307,9 @@ export class WindowManager {
         }
       }
     });
+
+    // Attach native context menu for editing and copying
+    attachNativeContextMenu(this.mainWindow);
 
     // Load the window URL, appending initial route as hash if provided
     // This avoids race conditions when the renderer isn't ready for IPC events
@@ -387,10 +397,17 @@ export class WindowManager {
 
     this.onboardingWindow.on("close", () => {
       this.trpcHandler.detachWindow(this.onboardingWindow!);
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.setEnabled(true);
+      }
     });
 
     this.onboardingWindow.on("closed", () => {
       this.onboardingWindow = null;
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.setEnabled(true);
+        this.mainWindow.focus();
+      }
     });
 
     // Disable main window while onboarding is open
@@ -419,16 +436,18 @@ export class WindowManager {
 
     if (this.meetingWidgetWindow && !this.meetingWidgetWindow.isDestroyed()) {
       this.meetingWidgetWindow.setBounds(bounds);
-      this.meetingWidgetWindow.show();
+      if (!this.meetingWidgetWindow.isVisible()) {
+        this.meetingWidgetWindow.showInactive();
+      }
       this.meetingWidgetWindow.setAlwaysOnTop(true, "screen-saver", 1);
       this.meetingWidgetWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-      this.meetingWidgetWindow.moveTop();
       return;
     }
 
     this.meetingWidgetWindow = new BrowserWindow({
       ...bounds,
-      show: true,
+      show: false,
+      focusable: false,
       frame: false,
       transparent: true,
       backgroundColor: "#00000000",
@@ -453,12 +472,10 @@ export class WindowManager {
 
     this.meetingWidgetWindow.setAlwaysOnTop(true, "screen-saver", 1);
     this.meetingWidgetWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    this.meetingWidgetWindow.moveTop();
 
     this.meetingWidgetWindow.once("ready-to-show", () => {
-      this.meetingWidgetWindow?.show();
+      this.meetingWidgetWindow?.showInactive();
       this.meetingWidgetWindow?.setAlwaysOnTop(true, "screen-saver", 1);
-      this.meetingWidgetWindow?.moveTop();
     });
 
     if (typeof RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL !== "undefined" && RECORDING_WIDGET_WINDOW_VITE_DEV_SERVER_URL) {
@@ -748,4 +765,24 @@ function clampNormalizedPosition(value: number): number {
   }
 
   return Math.min(1, Math.max(0, value));
+}
+
+function attachNativeContextMenu(window: BrowserWindow): void {
+  window.webContents.on("context-menu", (_event, params) => {
+    if (params.isEditable) {
+      const menu = new Menu();
+      menu.append(new MenuItem({ label: "Cut", role: "cut", enabled: params.editFlags.canCut }));
+      menu.append(new MenuItem({ label: "Copy", role: "copy", enabled: params.editFlags.canCopy }));
+      menu.append(new MenuItem({ label: "Paste", role: "paste", enabled: params.editFlags.canPaste }));
+      menu.append(new MenuItem({ type: "separator" }));
+      menu.append(new MenuItem({ label: "Select All", role: "selectAll", enabled: params.editFlags.canSelectAll }));
+      menu.popup();
+    } else if (params.selectionText && params.selectionText.trim().length > 0) {
+      const menu = new Menu();
+      menu.append(new MenuItem({ label: "Copy", role: "copy", enabled: params.editFlags.canCopy }));
+      menu.append(new MenuItem({ type: "separator" }));
+      menu.append(new MenuItem({ label: "Select All", role: "selectAll", enabled: params.editFlags.canSelectAll }));
+      menu.popup();
+    }
+  });
 }

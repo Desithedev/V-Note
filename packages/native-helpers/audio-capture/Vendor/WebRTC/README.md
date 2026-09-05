@@ -49,8 +49,8 @@ Prismical should not depend on runtime downloads for this library.
 
 The preferred path is the dedicated workspace package:
 
-- macOS: `pnpm --filter @prismical/webrtc-aec3-builder build:bundle`
-- Windows: `pnpm --filter @prismical/webrtc-aec3-builder build:windows`
+- macOS: `pnpm --filter @v-note/webrtc-aec3-builder build:bundle`
+- Windows: `pnpm --filter @v-note/webrtc-aec3-builder build:windows`
 
 That package:
 

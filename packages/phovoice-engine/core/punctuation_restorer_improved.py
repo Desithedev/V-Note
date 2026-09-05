@@ -12,7 +12,7 @@ import re
 
 
 class ImprovedPunctuationRestorer:
-    def __init__(self, device="cpu", confidence=0.3, model_name="dragonSwing/vibert-capu", case_confidence=0.0, prefer_int8=False, execution_provider="cpu"):
+    def __init__(self, device="cpu", confidence=0.45, model_name="dragonSwing/vibert-capu", case_confidence=0.0, prefer_int8=False, execution_provider="cpu"):
         self.device = device
         self.model_name = model_name
         self.confidence = confidence

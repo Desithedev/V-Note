@@ -34,7 +34,7 @@ export function NotesSearchButton() {
     >
       <Search className="h-4 w-4 shrink-0" />
       <span className="flex-1 truncate whitespace-nowrap text-left">
-        {t("settings.notes.searchButtonLabel")}
+        {t("settings.notes.searchButtonLabel", "Tìm kiếm")}
       </span>
       <kbd className="shrink-0 rounded bg-accent/60 px-1.5 py-0.5 font-mono text-xs dark:bg-accent/40">
         {shortcut}

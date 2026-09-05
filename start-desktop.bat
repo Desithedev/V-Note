@@ -6,5 +6,5 @@ taskkill /F /IM "Prismical.exe" >nul 2>&1
 taskkill /F /IM "V-Note.exe" >nul 2>&1
 
 echo [2/2] Khoi dong V-Note Desktop (Dev Mode)...
-pnpm --filter @prismical/desktop dev
+pnpm --filter @v-note/desktop dev
 pause

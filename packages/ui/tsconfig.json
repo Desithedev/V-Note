@@ -1,5 +1,5 @@
 {
-  "extends": "@prismical/typescript-config/react-library.json",
+  "extends": "@v-note/typescript-config/react-library.json",
   "compilerOptions": {
     "outDir": "dist"
   },

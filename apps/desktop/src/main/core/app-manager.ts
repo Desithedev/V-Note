@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain, shell } from "electron";
+import { app, clipboard, dialog, ipcMain, shell } from "electron";
 import { initializeDatabase } from "../../db";
 import { seedDevFixtures } from "../../services/dev-fixtures";
 import { bootstrapInstances } from "../../services/instance-bootstrap";
@@ -134,6 +134,23 @@ export class AppManager {
     ipcMain.handle("open-external", async (_event, url: string) => {
       await shell.openExternal(url);
       logger.main.debug("Opening external URL", { url });
+    });
+    ipcMain.handle("clipboard:write-text", async (_event, text: string) => {
+      try {
+        clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        logger.main.error("Failed to write to clipboard via IPC", err);
+        return false;
+      }
+    });
+    ipcMain.handle("clipboard:read-text", async () => {
+      try {
+        return clipboard.readText();
+      } catch (err) {
+        logger.main.error("Failed to read from clipboard via IPC", err);
+        return "";
+      }
     });
     registerFindInPageHandlers();
 

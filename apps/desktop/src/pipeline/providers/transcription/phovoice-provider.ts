@@ -375,7 +375,10 @@ export class PhoVoiceProvider implements TranscriptionProvider {
         const result = await this.transcribeChunk(
           merged,
           16000,
-          params.context || {},
+          {
+            ...(params.context || {}),
+            isIntermediateChunk: !isChunkSilent,
+          } as TranscribeContext,
           baseTimeMs,
         );
         if (result.text.trim()) {
@@ -467,7 +470,11 @@ export class PhoVoiceProvider implements TranscriptionProvider {
       formData.append("model", this.options.model || context.modelId || "68M");
       formData.append(
         "punctuation",
-        String(this.options.punctuation !== false),
+        String(
+          (context as any).isIntermediateChunk
+            ? false
+            : this.options.punctuation !== false,
+        ),
       );
       formData.append(
         "normalize",

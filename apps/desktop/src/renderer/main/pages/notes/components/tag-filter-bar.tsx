@@ -335,7 +335,7 @@ export function TagFilterBar() {
                   <ComboboxChipsInput
                     placeholder={
                       ids.length === 0
-                        ? t("settings.tags.filterBar.placeholder")
+                        ? t("settings.tags.filterBar.placeholder", "Lọc theo thẻ…")
                         : ""
                     }
                     className="min-w-12"

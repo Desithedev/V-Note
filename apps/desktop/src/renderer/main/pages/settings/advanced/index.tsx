@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { copyToClipboard } from "@/lib/clipboard";
 import {
   Card,
   CardHeader,
@@ -165,7 +166,7 @@ export default function AdvancedSettingsPage() {
 
   const handleCopyMachineId = async () => {
     if (machineIdQuery.data) {
-      await navigator.clipboard.writeText(machineIdQuery.data);
+      await copyToClipboard(machineIdQuery.data);
       toast.success(t("settings.advanced.toast.machineIdCopied"));
     }
   };

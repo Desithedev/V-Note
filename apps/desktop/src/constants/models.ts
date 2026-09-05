@@ -32,6 +32,10 @@ export interface DownloadProgress {
   abortController?: AbortController;
 }
 
+export interface ModelManagerState {
+  activeDownloads: Map<string, DownloadProgress>;
+}
+
 export interface AvailablePhoVoiceModel {
   id: string;
   name: string;

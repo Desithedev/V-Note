@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/trpc/react";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/clipboard";
 
 export default function PhoVoiceManageCard() {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -122,9 +123,9 @@ export default function PhoVoiceManageCard() {
   const isReady = isDownloadedQuery.data && (statusQuery.data?.isReady || statusQuery.data?.isRunning);
   const logs = logsQuery.data || [];
 
-  const handleCopyLogs = () => {
+  const handleCopyLogs = async () => {
     if (logs.length === 0) return;
-    navigator.clipboard.writeText(logs.join("\n"));
+    await copyToClipboard(logs.join("\n"));
     toast.success("Đã sao chép toàn bộ nhật ký vào Clipboard!");
   };
 
