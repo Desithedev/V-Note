@@ -422,6 +422,8 @@ const config: ForgeConfig = {
       if (platform === "win32") {
         const vcRuntimeDlls = [
           "msvcp140.dll",
+          "msvcp140_1.dll",
+          "msvcp140_2.dll",
           "vcruntime140.dll",
           "vcruntime140_1.dll",
         ];
@@ -444,8 +446,52 @@ const config: ForgeConfig = {
               console.warn(`  ⚠ Notice copying ${dll}:`, error);
             }
           }
+
+          // Bundle ONNX Runtime & DirectML DLLs to the application root directory.
+          // WHY: Windows 11 (24H2 / Germanium Copilot+ updates) includes an older version of
+          // onnxruntime.dll (v1.17) in C:\Windows\System32.
+          // In standard Windows SafeDllSearchMode, the application root directory (where V-Note.exe is)
+          // is searched at priority 1, while C:\Windows\System32 is searched at priority 2.
+          // If onnxruntime.dll is only inside resources/app.asar.unpacked/node_modules/onnxruntime-node/bin/...,
+          // Windows skips nested directories and loads C:\Windows\System32\onnxruntime.dll (v1.17),
+          // causing "Failed to initialize ONNX Runtime API. It could happen when this nodejs binding
+          // was built with a higher version ONNX Runtime but now runs with a lower version ONNX Runtime DLL".
+          // Placing the bundled onnxruntime.dll and DirectML DLLs in the application root guarantees
+          // Windows resolves our bundled v1.20+ runtime ahead of System32.
+          console.log(
+            `[postPackage] Bundling ONNX Runtime and DirectML DLLs at ${outputPath}...`,
+          );
+          const onnxBinDirCandidates = [
+            join(localNodeModules, "onnxruntime-node", "bin", "napi-v6", "win32", "x64"),
+            join(outputPath, "resources", "app.asar.unpacked", "node_modules", "onnxruntime-node", "bin", "napi-v6", "win32", "x64"),
+          ];
+          const onnxBinDir = onnxBinDirCandidates.find((dir) => existsSync(dir));
+          if (onnxBinDir) {
+            const onnxDlls = [
+              "onnxruntime.dll",
+              "DirectML.dll",
+              "dxcompiler.dll",
+              "dxil.dll",
+            ];
+            for (const dll of onnxDlls) {
+              const src = join(onnxBinDir, dll);
+              const dest = join(outputPath, dll);
+              try {
+                if (existsSync(src)) {
+                  copyFileSync(src, dest);
+                  console.log(`  ✓ Copied ${dll}`);
+                } else {
+                  console.warn(`  ⚠ ${dll} not found at ${src}`);
+                }
+              } catch (error) {
+                console.warn(`  ⚠ Notice copying ${dll}:`, error);
+              }
+            }
+          } else {
+            console.warn("  ⚠ onnxruntime-node win32-x64 bin directory not found!");
+          }
         }
-        console.log("✓ VC++ runtime DLLs step completed");
+        console.log("✓ Windows runtime DLLs step completed");
       }
     },
   },
