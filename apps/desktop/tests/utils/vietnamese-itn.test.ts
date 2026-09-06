@@ -41,4 +41,21 @@ describe("Vietnamese transcript text normalization", () => {
       ),
     ).toBe("kiểm tra realtime");
   });
+
+  it("converts misplaced periods before lowercase words into commas", () => {
+    expect(
+      normalizeVietnameseTranscriptText(
+        "thủy, băng, kim. hỏa mộc chỉ còn lại",
+      ),
+    ).toBe("thủy, băng, kim, hỏa mộc chỉ còn lại");
+  });
+
+  it("converts terminal periods on introductory list phrases into commas", () => {
+    expect(
+      normalizeVietnameseTranscriptText("với các con vật như là cá voi."),
+    ).toBe("với các con vật như là cá voi.");
+    expect(
+      normalizeVietnameseTranscriptText("với các hệ như là."),
+    ).toBe("với các hệ như là,");
+  });
 });

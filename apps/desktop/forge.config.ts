@@ -462,7 +462,8 @@ const config: ForgeConfig = {
             `[postPackage] Bundling ONNX Runtime and DirectML DLLs at ${outputPath}...`,
           );
           const onnxBinDirCandidates = [
-            join(localNodeModules, "onnxruntime-node", "bin", "napi-v6", "win32", "x64"),
+            join(__dirname, "node_modules", "onnxruntime-node", "bin", "napi-v6", "win32", "x64"),
+            join(__dirname, "..", "..", "node_modules", "onnxruntime-node", "bin", "napi-v6", "win32", "x64"),
             join(outputPath, "resources", "app.asar.unpacked", "node_modules", "onnxruntime-node", "bin", "napi-v6", "win32", "x64"),
           ];
           const onnxBinDir = onnxBinDirCandidates.find((dir) => existsSync(dir));

@@ -127,6 +127,7 @@ app.whenReady().then(async () => {
         let filePath = decodeURIComponent(
           request.url.replace(/^media:\/\/local-file\//i, "").replace(/^media:\/\//i, ""),
         );
+        filePath = filePath.split("?")[0].split("#")[0];
         if (process.platform === "win32" && filePath.startsWith("/")) {
           filePath = filePath.slice(1);
         }

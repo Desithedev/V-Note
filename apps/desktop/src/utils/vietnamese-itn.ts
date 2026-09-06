@@ -252,7 +252,20 @@ export function formatVietnamesePunctuation(text: string): string {
   // 3. Dọn dẹp các dấu câu bị lặp (ví dụ ".." -> ".", ",," -> ",")
   t = t.replace(/([.,!?:;])\1+/g, "$1");
 
-  return t;
+  // 4. Sửa lỗi dấu chấm ngắt câu sai trước chữ thường trong tiếng Việt
+  // (ví dụ: "thủy, băng, kim. hỏa mộc" -> "thủy, băng, kim, hỏa mộc")
+  t = t.replace(
+    /\.\s+(?=[a-zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ])/g,
+    ", ",
+  );
+
+  // 5. Cụm từ liệt kê không thể kết thúc bằng dấu chấm
+  t = t.replace(
+    /(như là|bao gồm|gồm có|ví dụ như|cụ thể là|nghĩa là|tức là)\s*\.\s*$/gi,
+    "$1,",
+  );
+
+  return t.trim();
 }
 
 /** Apply the same number, whitespace and punctuation cleanup everywhere a

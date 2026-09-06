@@ -51,6 +51,7 @@ export class PhoVoiceProvider implements TranscriptionProvider {
   private nextLocalHealthCheckAt = 0;
   private localServerReady = false;
   private nextHttpFallbackAt = 0;
+  private consecutiveSilenceSamples = 0;
 
   constructor(options: Partial<PhoVoiceProviderOptions> = {}) {
     this.options = {
@@ -83,6 +84,7 @@ export class PhoVoiceProvider implements TranscriptionProvider {
   public reset(): void {
     this.audioChunkBuffer = [];
     this.totalBufferedSamples = 0;
+    this.consecutiveSilenceSamples = 0;
     this.bufferStartTimeMs = null;
     this.latestPartialText = "";
     this.resampler.reset();
@@ -322,7 +324,7 @@ export class PhoVoiceProvider implements TranscriptionProvider {
       // streaming fallback
     }
 
-    // Energy analysis on latest chunk to detect utterance boundary
+    // Energy analysis on latest chunk to track continuous silence
     let chunkSq = 0;
     for (let i = 0; i < samples16k.length; i++) {
       chunkSq += samples16k[i] * samples16k[i];
@@ -330,17 +332,28 @@ export class PhoVoiceProvider implements TranscriptionProvider {
     const chunkRms = Math.sqrt(chunkSq / (samples16k.length || 1));
     const isChunkSilent = chunkRms < SILENCE_GATE_RMS;
 
+    if (isChunkSilent) {
+      this.consecutiveSilenceSamples += samples16k.length;
+    } else {
+      this.consecutiveSilenceSamples = 0;
+    }
+
+    // A natural speech pause requires at least 400ms (6,400 samples at 16kHz) of silence.
+    // Micro-pauses (e.g. 50-150ms between words) must NOT split sentences.
+    const hasNaturalPause = this.consecutiveSilenceSamples >= 6400;
+
     // Trigger chunk inference if:
-    // 1. We have at least 2.0s of audio and a natural pause (silence) occurred, OR
-    // 2. Buffer exceeds 5.0s (force chunk so live transcript remains responsive)
+    // 1. At least 3.0s (48,000 samples) of audio AND a natural pause (>= 400ms silence) occurred, OR
+    // 2. Buffer exceeds 8.0s (128,000 samples) to ensure responsiveness during uninterrupted speech
     const canTranscribeNow = Date.now() >= this.nextHttpFallbackAt;
+    const isBufferFull = this.totalBufferedSamples >= 128000;
     const shouldCutUtterance =
       canTranscribeNow &&
-      ((this.totalBufferedSamples >= 32000 && isChunkSilent) ||
-        this.totalBufferedSamples >= 80000);
+      ((this.totalBufferedSamples >= 48000 && hasNaturalPause) || isBufferFull);
 
     if (shouldCutUtterance) {
-      this.nextHttpFallbackAt = Date.now() + 1500; // 1.5s cooldown between HTTP chunk calls
+      this.nextHttpFallbackAt = Date.now() + 1000; // 1.0s cooldown between HTTP chunk calls
+      this.consecutiveSilenceSamples = 0;
 
       // Check overall energy of entire buffer
       let totalSq = 0;
@@ -377,7 +390,7 @@ export class PhoVoiceProvider implements TranscriptionProvider {
           16000,
           {
             ...(params.context || {}),
-            isIntermediateChunk: !isChunkSilent,
+            isIntermediateChunk: !hasNaturalPause,
           } as TranscribeContext,
           baseTimeMs,
         );

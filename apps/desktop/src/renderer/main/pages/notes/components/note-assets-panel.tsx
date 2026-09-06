@@ -151,6 +151,51 @@ function prepareTranscriptSentences(transcript: TranscriptEvent[]): TranscriptSe
       text: punctuated,
     });
   }
+
+  // Làm mượt dấu câu và liên kết câu giữa các segment liền kề của cùng một người nói
+  const INTRO_LIST_REGEX =
+    /(?:như là|bao gồm|gồm có|ví dụ như|cụ thể là|nghĩa là|tức là)\s+[^.!?]+[.!?]$/i;
+  const INCOMPLETE_TRAILING_REGEX =
+    /\b(?:là|thì|mà|nên|với|của|và|hoặc|nhưng|để|rồi|do|bởi|trong|ở|tại|rằng|khi|nếu|cho|về)\s*[.,!?:;]?$/i;
+
+  for (let i = 0; i < list.length - 1; i++) {
+    const curr = list[i];
+    const next = list[i + 1];
+    if (curr.speaker === next.speaker && curr.speakerId === next.speakerId) {
+      // Nếu câu trước kết thúc bằng cụm từ liệt kê (ví dụ "như là cá voi.") -> chuyển thành dấu phẩy
+      if (INTRO_LIST_REGEX.test(curr.text) && curr.text.endsWith(".")) {
+        curr.text = curr.text.slice(0, -1).trim() + ",";
+      }
+
+      // Nếu câu trước kết thúc bằng từ nối dở dang (ví dụ "thì", "mà", "là") kèm dấu chấm -> bỏ dấu chấm
+      if (INCOMPLETE_TRAILING_REGEX.test(curr.text) && curr.text.endsWith(".")) {
+        curr.text = curr.text.slice(0, -1).trim();
+      }
+
+      const nextText = next.text.trim();
+      const firstCharNext = nextText.charAt(0);
+      const isNextLower =
+        /^[a-zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/.test(
+          firstCharNext,
+        );
+
+      // Nếu câu trước có dấu chấm nhưng câu sau bắt đầu bằng chữ thường (ngắt chunk sai) -> đổi thành phẩy
+      if (curr.text.endsWith(".") && isNextLower) {
+        curr.text = curr.text.slice(0, -1).trim() + ",";
+      }
+
+      // Nếu câu trước kết thúc bằng dấu phẩy hoặc không có dấu câu, câu sau nên viết thường chữ cái đầu
+      const currEndsComma = /[,;:]$/.test(curr.text);
+      const currHasNoPunct = !/[.,!?:;…]$/.test(curr.text);
+      if ((currEndsComma || currHasNoPunct) && !isNextLower && nextText.length > 0) {
+        const firstWord = nextText.split(/\s+/)[0];
+        if (firstWord && firstWord !== firstWord.toUpperCase()) {
+          next.text = firstCharNext.toLowerCase() + nextText.slice(1);
+        }
+      }
+    }
+  }
+
   return list;
 }
 
@@ -166,7 +211,12 @@ function punctuateSentenceGroup(sentences: TranscriptSentence[]): string {
     }
   }
 
-  return parts.join(" ");
+  let text = parts.join(" ");
+  text = text.replace(
+    /\.\s+(?=[a-zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ])/g,
+    ", ",
+  );
+  return text;
 }
 
 // Gộp các câu thành từng lượt nói hoàn chỉnh của người dùng / hệ thống (dễ đọc toàn bộ dòng, không ngắt câu)
@@ -422,7 +472,21 @@ export function NoteAssetsPanel({
 
   useEffect(() => {
     if (meetingState === "idle" && effectiveNoteId) {
-      noteAudioQuery.refetch();
+      noteAudioQuery.refetch().then((res) => {
+        const freshSrc =
+          (res.data as any)?.mixedDataUrl ||
+          res.data?.dataUrl ||
+          res.data?.micDataUrl ||
+          res.data?.systemDataUrl ||
+          null;
+        if (freshSrc) {
+          setCurrentAudioSrc(freshSrc);
+          if (audioRef.current) {
+            audioRef.current.src = freshSrc;
+            audioRef.current.load();
+          }
+        }
+      });
       dbTranscriptQuery.refetch();
     }
   }, [meetingState, effectiveNoteId]);
@@ -436,8 +500,12 @@ export function NoteAssetsPanel({
         noteAudioQuery.data.micDataUrl ||
         noteAudioQuery.data.systemDataUrl ||
         null;
-      if (defaultSrc && !currentAudioSrc) {
+      if (defaultSrc && currentAudioSrc !== defaultSrc) {
         setCurrentAudioSrc(defaultSrc);
+        if (audioRef.current && audioRef.current.src !== defaultSrc) {
+          audioRef.current.src = defaultSrc;
+          audioRef.current.load();
+        }
       }
     }
   }, [noteAudioQuery.data, currentAudioSrc]);
@@ -985,10 +1053,10 @@ export function NoteAssetsPanel({
           ? Math.max(...transcript.map((t) => t.endTimeMs || 0)) / 1000
           : 0;
 
-      const safeDuration =
-        Number.isFinite(audioDuration) && !isNaN(audioDuration) && audioDuration > 0
-          ? audioDuration
-          : transcriptDurationSec;
+      const safeDuration = Math.max(
+        Number.isFinite(audioDuration) && !isNaN(audioDuration) ? audioDuration : 0,
+        transcriptDurationSec,
+      );
 
       return (
         <div className="flex h-full min-h-0">

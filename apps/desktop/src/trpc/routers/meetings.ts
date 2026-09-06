@@ -342,6 +342,12 @@ export const meetingsRouter = createRouter({
     .query(async ({ input }) => {
       const fileToMediaUrl = (filePath: string): string => {
         const normalized = filePath.replace(/\\/g, "/");
+        try {
+          if (fs.existsSync(filePath)) {
+            const stat = fs.statSync(filePath);
+            return `media://local-file/${normalized}?t=${Math.round(stat.mtimeMs)}`;
+          }
+        } catch {}
         return `media://local-file/${normalized}`;
       };
 

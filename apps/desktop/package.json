@@ -1,6 +1,6 @@
 {
   "name": "@v-note/desktop",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "V-Note Desktop app",
   "main": ".vite/build/main.js",
   "productName": "V-Note",
