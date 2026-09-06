@@ -22,7 +22,11 @@ import {
   realpathSync,
   copyFileSync,
 } from "node:fs";
-import { join, normalize } from "node:path";
+import { dirname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 // Use flora-colossus for finding all dependencies of EXTERNAL_DEPENDENCIES
 // flora-colossus is maintained by MarshallOfSound (a top electron-forge contributor)
 // already included as a dependency of electron-packager/galactus (so we do NOT have to add it to package.json)
