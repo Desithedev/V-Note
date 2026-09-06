@@ -20,23 +20,33 @@ export interface PhoVoiceModelStatus {
   isOffline: boolean;
 }
 
-const { PhoVoiceModule } = NativeModules;
-const eventEmitter = PhoVoiceModule
-  ? new NativeEventEmitter(PhoVoiceModule)
-  : null;
+const PhoVoiceModule = NativeModules ? NativeModules.PhoVoiceModule : null;
+
+let eventEmitter: NativeEventEmitter | null = null;
+try {
+  if (PhoVoiceModule) {
+    eventEmitter = new NativeEventEmitter(PhoVoiceModule);
+  }
+} catch (e) {
+  console.warn("[PhoVoiceService] NativeEventEmitter warning:", e);
+}
 
 class PhoVoiceService {
   private listeners: ((event: PhoVoiceTranscription) => void)[] = [];
   private isRecording = false;
 
   constructor() {
-    if (eventEmitter) {
-      eventEmitter.addListener(
-        "PhoVoiceTranscription",
-        (data: PhoVoiceTranscription) => {
-          this.notifyListeners(data);
-        },
-      );
+    try {
+      if (eventEmitter) {
+        eventEmitter.addListener(
+          "PhoVoiceTranscription",
+          (data: PhoVoiceTranscription) => {
+            this.notifyListeners(data);
+          },
+        );
+      }
+    } catch (e) {
+      console.warn("[PhoVoiceService] addListener failed:", e);
     }
   }
 

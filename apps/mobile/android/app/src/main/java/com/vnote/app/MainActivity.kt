@@ -9,5 +9,5 @@ class MainActivity : ReactActivity() {
     override fun getMainComponentName(): String = "VNoteMobile"
 
     override fun createReactActivityDelegate(): ReactActivityDelegate =
-        DefaultReactActivityDelegate(this, mainComponentName, false)
+        DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled = false)
 }

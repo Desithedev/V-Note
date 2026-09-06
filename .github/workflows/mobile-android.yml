@@ -100,7 +100,15 @@ jobs:
       - name: Rename Output APK
         run: |
           mkdir -p output-apk
-          find apps/mobile/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apk/V-Note-PhoVoice-Android.apk \; || true
+          if [ -f apps/mobile/android/app/build/outputs/apk/release/app-release.apk ]; then
+            echo "Found release APK, copying..."
+            cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk output-apk/V-Note-PhoVoice-Android.apk
+          elif [ -f apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "Found debug APK, copying..."
+            cp apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk output-apk/V-Note-PhoVoice-Android.apk
+          else
+            find apps/mobile/android/app/build/outputs/apk/ -name "*.apk" -exec cp {} output-apk/V-Note-PhoVoice-Android.apk \; || true
+          fi
 
       - name: Upload PhoVoice Android APK Artifact
         uses: actions/upload-artifact@v4

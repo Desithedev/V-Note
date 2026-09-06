@@ -19,4 +19,6 @@ android/app/src/main/assets/*.bundle
 android/app/src/main/assets/*.bundle.meta
 android/app/libs/*.aar
 android/app/libs/*.jar
+android/.idea/
+android/local.properties
 
